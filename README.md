@@ -26,6 +26,8 @@ Features :
 
 Assumptions : 
 
+- IP is staticly defined 
+
 - UDP packets containing MoldUDP64 datagrams will never be framgmented
 
 ## UDP retransmission request
@@ -44,7 +46,9 @@ Features :
 
 Assumptions : 
 
-- destination will never change
+- IP is staticly defined 
+
+- destination address will never change
 
 - UDP data provider will transmit data without holes or bubbles 
 
@@ -52,6 +56,8 @@ Assumptions :
 ## TCP
 
 Assumptions : 
+
+- IP is staticly defined 
 
 - ITCH server is located at a single designation address
 
