@@ -26,8 +26,6 @@ Features :
 
 Assumptions : 
 
-- IP is staticly defined 
-
 - UDP packets containing MoldUDP64 datagrams will never be framgmented
 
 ## UDP retransmission request
@@ -46,22 +44,31 @@ Features :
 
 Assumptions : 
 
-- IP is staticly defined 
-
-- destination address will never change
-
 - UDP data provider will transmit data without holes or bubbles 
-
 
 ## TCP
 
-Assumptions : 
+Features : 
 
-- IP is staticly defined 
+- IPv4
+
+Assumptions : 
 
 - ITCH server is located at a single designation address
 
 - There will only be 1 connection alive at a time
 
+## Common features and assumptions
 
+Features and assumptions shared amoung all ethernet interface.
+
+Features :
+
+- IP is staticly defined 
+
+- Gateway MAC is statically defined
+
+Assumptions :
+
+- Remote server address will never change 
 
