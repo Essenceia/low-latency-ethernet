@@ -4,21 +4,41 @@ RTL implementation of a low latency ethernet interface for the purposes of the H
 
 In order to help acheive a lower latency all features not stricktly necessary for our
 use case will be stripped out. External users should assume this project will be re-usable 
-for a different use case.
+for a different use case or that it is compliant with 802.3.
 
-Our objective is to implement 3 different ethernet interface, each having only 1 function : 
+Our objective is to implement 2 different ethernet interface, each having a limited feature scope : 
 
-- UDP for data stream only 
-
-- UDP for re-transmission request only
+- UDP : 
+    rx for data stream and replayed messages only 
+    tx for re-transmission request only
 
 - TCP, single connection 
 
-## UDP data stream
+
+### PHY 
+
+Features :
+
+- 10GBASE-T
+
+ 
+### MAC
+
+Features :
+
+- XMII
+
+Assumptions :
+
+- Non compliance with 802.3 is okay 
+
+- Full duplex interface only 
+
+### UDP 
+
+#### rx data stream
 
 Features : 
-
-- rx only, no tx 
 
 - IPv4, no support for framgmentation
 
@@ -28,11 +48,9 @@ Assumptions :
 
 - UDP packets containing MoldUDP64 datagrams will never be framgmented
 
-## UDP retransmission request
+#### tx retransmission request
 
 Features : 
-
-- tx only, no rx
 
 - IPv4
 
@@ -46,7 +64,7 @@ Assumptions :
 
 - UDP data provider will transmit data without holes or bubbles 
 
-## TCP
+### TCP
 
 Features : 
 
@@ -58,7 +76,7 @@ Assumptions :
 
 - There will only be 1 connection alive at a time
 
-## Common features and assumptions
+### Common features and assumptions
 
 Features and assumptions shared amoung all ethernet interface.
 
