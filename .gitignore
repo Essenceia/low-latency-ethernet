@@ -11,3 +11,6 @@
 !tcl
 !*.tcl
 !*.xdc
+!phy
+!udp
+!ip
