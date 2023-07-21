@@ -1,13 +1,31 @@
-DEFAULT_GATEWAY_MAC = 48'b0
-// ETH 0
-ETH0_IP = 64'b0
-ETHO_GW_MAC = ${DEFAULT_GATEWAY_MAC}
+ifndef debug
+#debug :=
+endif
 
-// ETH 1
-ETH1_IP = 64'b1
-ETH1_GW_MAC = ${DEFAULT_GATEWAY_MAC}
+TB_DIR=tb
+BUILD=build
+CONF=conf
+FLAGS=-Wall -g2012 -gassertions -gstrict-expr-width
+WAVE_FILE=wave.vcd
+VIEW=gtkwave
+WAVE_CONF=wave.conf
+PHY_DIR=phy
 
-// ETH 2
-ETH2_IP = 64'b2
-ETH2_GW_MAC = ${DEFAULT_GATEWAY_MAC}
+all: top run
 
+
+64b66b_tx : ${PHY_DIR}/64b66b.v
+	iverilog ${FLAGS} -s scrambler_64b66b_tx -o ${BUILD}/64b66b_tx ${PHY_DIR}/64b66b.v
+
+64b66b_tb: 64b66b_tx ${TB_DIR}/64b66b_tb.v
+	iverilog ${FLAGS} -s lite_64b66b_tb -o ${BUILD}/lite_64b66b_tb ${PHY_DIR}/64b66b.v ${TB_DIR}/64b66b_tb.v
+
+run: 64b66b_tb
+	vvp ${BUILD}/lite_64b66b_tb
+
+wave: run
+	${VIEW} ${BUILD}/${WAVE_FILE} ${CONF}/${WAVE_CONF}
+
+clean:
+	rm -fr ${BUILD}/*
+	
