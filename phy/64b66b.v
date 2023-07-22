@@ -10,7 +10,7 @@ module scrambler_64b66b_tx #(
 	input  [LEN-1:0] data_i,
 	output [LEN-1:0] scram_o
 );
-localparam S_W = 59;
+localparam S_W = 58;
 // S_58 to S_0, previously scrambled data
 reg   [S_W-1:0] s_q;
 logic [S_W-1:0] s_next;
@@ -19,9 +19,7 @@ logic [S_W-1:0] s_next;
 genvar i;
 generate
 	for (  i = 0; i < LEN; i++ ) begin : xor_loop
-		logic xor1;
-		assign xor1 =s_q[39-i] ^ s_q[58-i]; 
-		assign scram_o[i] = data_i[i]^ ( s_q[39-i] ^ s_q[58-i] ); 
+		assign scram_o[i] = data_i[i]^ ( s_q[38-i] ^ s_q[57-i] ); 
 	end
 endgenerate
 
