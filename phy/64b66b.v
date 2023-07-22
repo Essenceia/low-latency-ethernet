@@ -40,6 +40,5 @@ always @(posedge clk) begin
 		s_q <= s_next;
 	end
 end
-
 endmodule
 

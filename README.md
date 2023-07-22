@@ -21,7 +21,11 @@ Features :
 
 - 10GBASE-T
 
- 
+Assumptions :
+
+- No need to support EEE ( clause 78 )  
+    PCS control code LPI ( low power idle ) will be ~~treated as an error~~ ignored
+
 ### MAC
 
 Features :
