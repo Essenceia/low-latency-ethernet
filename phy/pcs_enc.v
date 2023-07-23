@@ -33,7 +33,7 @@ module pcs_enc #(
 	input last_i,
 
 	output                    block_header_v_o,
-	output [1;0]              sync_header_o, 
+	output [1:0]              sync_header_o, 
 	output [XGMII_DATA_W-1:0] data_o		
 );
 localparam [BLOCK_TYPE_W-1:0]
