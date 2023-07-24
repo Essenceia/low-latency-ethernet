@@ -1,0 +1,3 @@
+[submodule "phy"]
+	path = phy
+	url = https://github.com/Essenceia/ethernet-physical-layer.git
