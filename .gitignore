@@ -12,6 +12,7 @@
 !*.tcl
 !*.xdc
 !phy
+!mac
 !udp
 !ip
 !tb
