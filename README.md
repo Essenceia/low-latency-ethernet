@@ -6,31 +6,11 @@ In order to help acheive a lower latency all features not stricktly necessary fo
 use case will be stripped out. External users should assume this project will be re-usable 
 for a different use case or that it is compliant with 802.3.
 
-Our objective is to implement 2 different ethernet interface, each having a limited feature scope : 
-
-- UDP : 
-    rx for data stream and replayed messages only 
-    tx for re-transmission request only
-
-- TCP, single connection 
-
-
 ### PHY 
 
-Features :
-
-- 10GBASE-T
-
-Assumptions :
-
-- No need to support EEE ( clause 78 )  
-    PCS control code LPI ( low power idle ) will be ~~treated as an error~~ ignored
+IP for both 10GBASE-R and 4 lane 40GBASE-R, see submodule.
 
 ### MAC
-
-Features :
-
-- XMII
 
 Assumptions :
 
