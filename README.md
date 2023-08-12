@@ -12,11 +12,14 @@ IP for both 10GBASE-R and 4 lane 40GBASE-R, see submodule.
 
 ### MAC
 
+Features :
+
+- Support VLAN tagging
+
 Assumptions :
 
-- Non compliance with 802.3 is okay 
-
 - Full duplex interface only 
+
 
 ### UDP 
 
@@ -25,6 +28,8 @@ Assumptions :
 Features : 
 
 - IPv4, no support for framgmentation
+
+- Support options, discard there data
 
 - only supports UDP, ignors all other packet types
 
