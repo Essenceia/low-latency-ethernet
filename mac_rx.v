@@ -77,10 +77,10 @@ logic [CNT_W-1:0] data_cnt;
 
 /* cnt the number of bytes received from the PCS */
 if ((DATA_W == 64) && (IS_10G == 1)) begin
-/* first packet can have 4 or 8 bytes of data */
-assign data_cnt = start_v ? (start_i[1] ? 'd4 : 'd8): 8;
+	/* first packet can have 4 or 8 bytes of data */
+	assign data_cnt = start_v ? (start_i[1] ? 'd4 : 'd8): 8;
 end else begin
-assign data_cnt = (DATA_W/8);
+	assign data_cnt = (DATA_W/8);
 end
 
 assign cnt_rst = fsm_invalid_q & ~start_v; 
@@ -197,13 +197,58 @@ end
 /* data shift and keep */
 logic [KEEP_W-1:0] data_keep;
 logic              term_lite_v;
-assign term_lite_v = ctrl_v_i & term_i;
+logic [KEEP_W-1:0] term_data_keep;
+
+assign term_lite_v    = ctrl_v_i & term_i;
 
 if ( DATA_W == 16 ) begin
-assign data_keep = term_lite_v ? term_keep_i : {KEEP_W{1'b1}};
-end else if ( DATA_W == 32 ) begin
+	assign data_keep = term_lite_v ? term_keep_i : {KEEP_W{1'b1}};
+end else 
+	/* if DATA_W > 16 need to shift data because of header */
+	logic [KEEP_W-1:0] head_data_keep;
+	logic [KEEP_W-1:0] head_data_shifted;
+	logic              head_data_lite_v;
 
-end else if ( DATA_W == 64 ) begin
+	assign data_keep = {KEEP_W{head_data_lite_v}} & head_data_keep
+					 | {KEEP_W{term_keep_i}} & term_keep_i
+					 | {KEEP_W{~head_data_keep & ~term_keep_i}}; // '1
+					 
+	if ( DATA_W == 32 ) begin
+		/* with or whitout vtag data will be on the 2 msb bytes after the type */
+		assign head_data_keep = {2'b0, 2'b11};
+		assign head_data_shifted = data_i[31:16];
+	end else if ( DATA_W == 64 ) begin
+		/* cnt_q[2] = 20, start 2nd lane0 
+ 		 * no vtag :
+ 		 * [X | pre 4B] [pre 4B | @dst 4B] [@dst 2B | @src 6B] [type 2B| data 6B]
+ 		 * vtag : 
+		 * [X | pre 4B] [pre 4B | @dst 4B] [@dst 2B | @src 6B] [vtag 4B| type 2B | data 2B]
+ 		 * 
+ 		 * ~cnt_q[2] = 16, start 1st lane0 
+ 		 * no vtag:
+		 * [pre 8B] [@dst 6B | @scr 2B] [@src 4B | type 2B | data 2B]
+		 * vtag:
+		 * [pre 8B] [@dst 6B | @scr 2B] [@src 4B | vtag 4B] [type 2B | data 6B]
+		 */
+		logic head_data_shift2;
+		if (IS_10G) begin
+			if ( VLAN_TAG ) begin
+				assign head_data_shift2 = cnt_q[2] ^ vlan_v;
+			end else begin
+				assign head_data_shift2 = ~cnt_q[2];	
+			end
+		end else // !10G
+			if ( VLAN_TAG ) begin
+				assign head_data_shift2 = ~vlan_v;
+			end else begin // !VTAG
+				assign head_data_shift2 = 1'b1;
+			end
+		end
+		assign head_data_shifter = head_data_shift2
+								 ? {data_i[DATA_W-:TYPE_W], {DATA_W-TYPE_W{1'bx}}}
+								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}};
+		assign head_data_keep = {2'b0, {4{~head_data_shift2}}, 2'b11};  
+								  
 end 
 /* crc */
 

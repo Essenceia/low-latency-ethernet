@@ -50,8 +50,8 @@ DEFINES := $(if $(wave),wave=1)
 # Lint variables.
 LINT_FLAGS :=
 ifeq ($(SIM),I)
-LINT_FLAGS += -Wall -g2012 $(if $(assert),-gassertions) -gstrict-expr-width
-LINT_FLAGS += $(if $(debug),-DDEBUG) 
+LINT_FLAGS +=-Wall -g2012 $(if $(assert),-gassertions) -gstrict-expr-width
+LINT_FLAGS +=$(if $(debug),-DDEBUG) 
 else
 LINT_FLAGS += -Wall -Wpedantic -Wno-GENUNNAMED -Wno-LATCH
 endif
@@ -60,6 +60,8 @@ endif
 # TODO ONELINER
 ifeq ($(SIM),I)
 define LINT
+	$(info 1 $(1))
+	$(info 2 $(2))
 	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
 endef
 else
@@ -125,14 +127,14 @@ build:
 ########
 
 # Dependencies for linter.
-mac_rx_deps := mac_rx.v crc.v
+mac_rx_deps :=mac_rx.v crc.v
 mac_tx_deps := 
 
-lint_rx : $(mac_rx_deps)
-	$(call LINT, $^, max_rx)
+lint_rx :$(mac_rx_deps)
+	$(call LINT,$^,mac_rx)
 
-lint_tx : $(mac_tx_deps)
-	$(call LINT, $^,max_tx)
+lint_tx :$(mac_tx_deps)
+	$(call LINT,$^,mac_tx)
 
 
 #############
@@ -150,9 +152,9 @@ $1_tb: $$($(1)_deps)
 endef
 
 # Dependencies for each testbench
-crc_deps := crc.v $(TB_DIR)/crc_tb.sv
-mac_rx_deps := mac_rx.v crc.v $(TB_DIR)/mac_rx_tb.sv
-mac_tx_deps := mac_tx.v $(TB_DIR)/mac_tx_tb.sv
+crc_deps :=crc.v $(TB_DIR)/crc_tb.sv
+mac_rx_deps :=mac_rx.v crc.v $(TB_DIR)/mac_rx_tb.sv
+mac_tx_deps :=mac_tx.v $(TB_DIR)/mac_tx_tb.sv
 
 # Standard run recipe to run a given testbench
 define run_recipe
