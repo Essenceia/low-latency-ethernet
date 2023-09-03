@@ -79,3 +79,18 @@ Assumptions :
 
 - Remote server address will never change 
 
+### Roadmap 
+
+Under developpement : 
+
+- [x] PCS 10G 16b wide data path
+
+- [x] PCS 40G 256b wide data path
+
+- [x] MAC 10G 16b/32b/64b wide data path
+
+- [ ] IPv4
+
+- [ ] UDP
+
+- [ ] TCP
