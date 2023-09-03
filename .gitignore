@@ -3,6 +3,7 @@
 !doc/**
 !*.v
 !*.sv
+!*.md
 !.gitignore
 !.gitattribute
 !.gitmodules
