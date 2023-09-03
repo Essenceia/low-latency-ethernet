@@ -1,5 +1,5 @@
 /* Generic Checksum module, breaks adder path into tree */
-module checksum #(
+module crc #(
 	parameter SUM_W  = 16,
 	parameter DATA_W = 32 
 )(
