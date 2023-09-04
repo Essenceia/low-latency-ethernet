@@ -20,7 +20,7 @@ reg   [SUM_W-1:0]  sum_q;
 logic [SUM_W-1:0]  sum_lite_next;
 logic [SUM_W-1:0]  sum_next;
 
-logic [DATA_W:0] res;
+logic [DATA_W-1:0] res;
 
 assign sum = start_i ? {SUM_W{1'b0}}: sum_q;
 genvar i;
