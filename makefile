@@ -127,7 +127,7 @@ build:
 ########
 
 # Dependencies for linter.
-mac_rx_deps :=mac_rx.v crc.v
+mac_rx_deps :=mac_rx.v crc_rx.v
 mac_tx_deps := 
 
 lint_rx :$(mac_rx_deps)
@@ -152,8 +152,8 @@ $1_tb: $$($(1)_deps)
 endef
 
 # Dependencies for each testbench
-crc_deps :=crc.v $(TB_DIR)/crc_tb.sv
-mac_rx_deps :=mac_rx.v crc.v $(TB_DIR)/mac_rx_tb.sv
+crc_deps :=crc_rx.v $(TB_DIR)/crc_tb.sv
+mac_rx_deps +=$(TB_DIR)/mac_rx_tb.sv
 mac_tx_deps :=mac_tx.v $(TB_DIR)/mac_tx_tb.sv
 
 # Standard run recipe to run a given testbench

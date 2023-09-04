@@ -43,6 +43,9 @@ localparam TYPE_IDX = PRE_W + 2*ADDR_W;
 localparam IPV4 = 16'h0800; 
 /* vlan tag protocol identifier */
 localparam TPIC = 16'h8100;
+/* CRC */
+localparam CRC_W = 32;
+
 /* fsm */
 reg   fsm_invalid_q;
 logic fsm_invalid_next;
@@ -162,6 +165,8 @@ end else begin
 		reg   [TYPE_CNT_W-1:0] type_lsb_v_q;	
 		logic [TYPE_CNT_W-1:0] type_lsb_v_next;
 
+		/* TODO : 40G : stall progress of shift on invalid blocks
+		 * to support alignement marker removal */
 		assign type_lsb_v_next[TYPE_CNT_W-1] = vlan_v & ~cnt_q[2];
 		if ( DATA_W == 16 ) begin
 		assign type_lsb_v_next[0] = vlan_v ? 1'b0 : type_lsb_v_q[1];
@@ -194,29 +199,36 @@ always @(posedge clk) begin
 	data_v_q <= data_v_next;
 end
 
-/* data shift and keep */
-logic [KEEP_W-1:0] data_keep;
+/* data and keep */
 logic              term_lite_v;
 logic [KEEP_W-1:0] term_data_keep;
+logic              data_lite_v;
 
-assign term_lite_v    = ctrl_v_i & term_i;
+assign term_lite_v = ctrl_v_i & term_i;
+assign data_lite_v = valid_i & data_v_q;
 
 if ( DATA_W == 16 ) begin
-	assign data_keep = term_lite_v ? term_keep_i : {KEEP_W{1'b1}};
-end else 
+	assign keep_o  = term_lite_v ? term_keep_i : {KEEP_W{1'b1}};
+	assign data_o  = data_i;
+	assign valid_o = data_lite_v & fsm_data_q;
+end else begin 
 	/* if DATA_W > 16 need to shift data because of header */
 	logic [KEEP_W-1:0] head_data_keep;
 	logic [KEEP_W-1:0] head_data_shifted;
 	logic              head_data_lite_v;
 
-	assign data_keep = {KEEP_W{head_data_lite_v}} & head_data_keep
-					 | {KEEP_W{term_keep_i}} & term_keep_i
-					 | {KEEP_W{~head_data_keep & ~term_keep_i}}; // '1
-					 
+	assign head_data_lite_v = type_v;
+	assign keep_o  = {KEEP_W{head_data_lite_v}} & head_data_keep
+				   | {KEEP_W{term_lite_v}} & term_keep_i
+				   | {KEEP_W{~head_data_keep & ~term_lite_v}}; // '1
+	assign data_o  = head_data_lite_v ? head_data_shifted : data_i;
+	assign valid_o = data_lite_v & 
+					( fsm_data_q 
+					| fsm_head_q & head_data_lite_v ); 
 	if ( DATA_W == 32 ) begin
 		/* with or whitout vtag data will be on the 2 msb bytes after the type */
 		assign head_data_keep = {2'b0, 2'b11};
-		assign head_data_shifted = data_i[31:16];
+		assign head_data_shifted = data_i[DATA_W-:TYPE_W];
 	end else if ( DATA_W == 64 ) begin
 		/* cnt_q[2] = 20, start 2nd lane0 
  		 * no vtag :
@@ -246,12 +258,25 @@ end else
 		end
 		assign head_data_shifter = head_data_shift2
 								 ? {data_i[DATA_W-:TYPE_W], {DATA_W-TYPE_W{1'bx}}}
-								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}};
+								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}}};
 		assign head_data_keep = {2'b0, {4{~head_data_shift2}}, 2'b11};  
-								  
-end 
+end
+ 
 /* crc */
+logic             crc_start_v;
+logic [CRC_W-1:0] crc;
 
+/* crc starts after preamble */
+assign crc_start_v = cnt_q == 8;
+
+crc_rx #(.DATA_W(DATA_W), .SUM_W(CRC_W))
+m_crc(
+	.clk(clk),
+	.start_i(crc_start_v),
+	.valid_i(valid_i),
+	.data_i(data_i),
+	.crc_o(crc)
+);
 /* fsm */
 logic term_v;
 assign term_v = valid_i & term_lite_v;
