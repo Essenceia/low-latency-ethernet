@@ -139,7 +139,7 @@ build:
 crc_deps := crc32.v
 mac_deps +=crc.v mac_rx.v
 
-lint_rx :$(mac_rx_deps)
+lint_mac :$(mac_deps)
 	$(call LINT,$^,mac_rx)
 
 lint_crc: $(crc_deps)

@@ -56,9 +56,10 @@ reg   fsm_head_q;
 logic fsm_head_next;
 reg   fsm_data_q;
 logic fsm_data_next;
-reg   fsm_crc_q;
-logic fsm_crc_next;
 
+/* input data is valid */
+logic data_v;
+assign data_v = valid_i & ~(ctrl_v_i & idle_i); 
 
 /* start of a new packet */
 logic start_v;
@@ -80,19 +81,23 @@ logic [CNT_W-1:0] cnt_next;
 logic [CNT_W-1:0] cnt_add;
 logic             unused_cnt_add_of;
 logic             cnt_rst; 
+logic [CNT_W-1:0] data_lite_cnt;
 logic [CNT_W-1:0] data_cnt;
 
 
 /* cnt the number of bytes received from the PCS */
 if ((DATA_W == 64) && (IS_10G == 1)) begin
 	/* first packet can have 4 or 8 bytes of data */
-	assign data_cnt = start_lite_v ? (start_i[1] ? 'd4 : 'd8): 8;
+	assign data_lite_cnt = start_lite_v ? (start_i[1] ? 'd4 : 'd8): 'd8;
 end else begin
-	assign data_cnt = (DATA_W/8);
+	/*verilator lint_off WIDTHTRUNC */
+	assign data_lite_cnt = KEEP_W;
+	/*verilator lint_on WIDTHTRUNC */
 end
+assign data_cnt = {CNT_W{data_v}} & data_lite_cnt;
 
 assign cnt_rst = fsm_invalid_q & ~start_v; 
-assign {unused_cnt_add_of, cnt_add} = cnt_q + ({CNT_W{valid_i}} & data_cnt);
+assign {unused_cnt_add_of, cnt_add} = cnt_q + data_cnt;
 assign cnt_next = cnt_rst ? {CNT_W{1'b0}} : cnt_add;
 
 always @(posedge clk) begin
@@ -188,20 +193,20 @@ end else begin
 end
 assign type_err_v = type_v & (type_id == IPV4);
  
-/* data validity
+/* data bypass valid
  * controls if data will be sent to the upper layers.
  * We can invalidate data if packet is of the wrong type of there are
  * errors */
-reg   data_v_q;
-logic data_v_next;	
-logic data_v_rst;
+reg   bypass_v_q;
+logic bypass_v_next;	
+logic bypass_v_rst;
 
 /* reasons to invalidate data */
-assign data_v_rst  = fsm_invalid_q;
-assign data_v_next = data_v_rst ? 1'b1 : data_v_q & ~type_err_v; 
+assign bypass_v_rst  = fsm_invalid_q;
+assign bypass_v_next = bypass_v_rst ? 1'b0 : bypass_v_q | type_err_v; 
 
 always @(posedge clk) begin
-	data_v_q <= data_v_next;
+	bypass_v_q <= bypass_v_next;
 end
 
 /* data and keep */
@@ -210,7 +215,7 @@ logic [KEEP_W-1:0] term_data_keep;
 logic              data_lite_v;
 
 assign term_lite_v = ctrl_v_i & term_i;
-assign data_lite_v = valid_i & data_v_q;
+assign data_lite_v = data_v & ~bypass_v_q;
 
 if ( DATA_W == 16 ) begin
 	assign keep_o  = term_lite_v ? term_keep_i : {KEEP_W{1'b1}};
@@ -268,17 +273,24 @@ end else begin
 end
  
 /* crc */
+// TODO 
 logic             crc_start_v;
-logic [CRC_W-1:0] crc;
+logic             crc_err_v;
+logic [CRC_W-1:0]  crc;
+
+logic [DATA_W-1:0] crc_data;
+logic [KEEP_W-1:0] crc_keep;
 
 /* crc starts after preamble */
 assign crc_start_v = cnt_q == 8;
+/* crc test at the end of the packet */
+assign crc_err_v = crc == {CRC_W{1'b0}};
 
 crc #(.DATA_W(DATA_W), .CRC_W(CRC_W))
 m_crc(
 	.clk(clk),
 	.start_i(crc_start_v),
-	.valid_i(valid_i),
+	.valid_i(data_v),
 	.data_i(data_i),
 	.crc_o(crc)
 );
@@ -299,12 +311,14 @@ always @(posedge clk) begin
 		fsm_invalid_q <= 1'b1;
 		fsm_head_q <= 1'b0;
 		fsm_data_q <= 1'b0;
-		fsm_crc_q <= 1'b0;
 	end else begin
 		fsm_invalid_q <= fsm_invalid_next;
 		fsm_head_q <= fsm_head_next;
 		fsm_data_q <= fsm_data_next;
-		fsm_crc_q <= fsm_crc_next;
 	end
 end
+
+/* output */
+assign cancel_o = ~fsm_invalid_q & cancel_i;
+assign crc_err_o = crc_err_v;
 endmodule

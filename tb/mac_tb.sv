@@ -1,4 +1,5 @@
-`define TB_PKT_LEN 3
+`define TB_DATA_CYCLES 3
+
 
 module mac_tb;
 localparam DATA_W = 16;
@@ -8,6 +9,11 @@ localparam IS_10G = 1;
 localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1;
 
 localparam [7:0] START_CHAR = 8'haa;
+localparam [15:0] VLAN_TYPE = 16'h8100;
+localparam [15:0] IPV4_TYPE = 16'h8000;
+
+localparam HEAD_LEN = 22 + ( VLAN_TAG ? 4 : 0 );
+localparam TB_PKT_LEN = HEAD_LEN + KEEP_W*`TB_DATA_CYCLES;
 
 reg   clk = 1'b0;
 /* verilator lint_off BLKSEQ */
@@ -51,15 +57,54 @@ task idle_cycle();
 	idle_i = 1'b0;
 endtask
 
+function logic [HEAD_LEN*8-1:0] set_head();
+	static logic [HEAD_LEN*8-1:0] head;
+	/* preambule */
+	static logic [63:0] pre = {56'hAAAAAAAAAAAAAA, 8'hAB};
+
+	/* mac addr */
+	// coca cola company
+	static logic [6*8-1:0] dst_addr = {16'h0 ,32'hFCD4F2};
+	// molex
+	static logic [6*8-1:0] src_addr = {16'h0 ,32'hF82F08};
+	
+
+	/* type and vlan */
+	static logic [15:0] h_type = IPV4_TYPE;
+
+	if ( VLAN_TAG ) begin
+		static logic [31:0] vlan_tag;
+		static logic [2:0]  pcp;
+		static logic        dei;
+		static logic [11:0] vid;
+
+		/* verilator lint_off WIDTHTRUNC */
+		{ vid, dei, pcp } = $random; 
+		/* verilator lint_on WIDTHTRUNC */
+
+		vlan_tag = {vid, dei, pcp, VLAN_TYPE};
+		head[HEAD_LEN*8-1-:8*6] = {h_type, vlan_tag};	
+	end else begin
+		head[HEAD_LEN*8-1-:16] = h_type;	
+	end
+	head[20*8-1:0] = {src_addr, dst_addr, pre};
+	return head;
+endfunction
+
 /* Send simple random packet */
 task send_packet(); 
-	logic [`TB_PKT_LEN*DATA_W-1:0] tmp;
-	for(int i=0; i < `TB_PKT_LEN*KEEP_W; i++) begin
+	logic [TB_PKT_LEN*8-1:0] tmp;
+	
+	/* head */
+	tmp[HEAD_LEN*8-1:0] = set_head();
+
+	/* set data packet content */
+	for(int i=HEAD_LEN; i < TB_PKT_LEN; i++) begin
 		if ( i == 0 ) begin
-			tmp[i] = START_CHAR;
+			tmp[i*8+:8] = START_CHAR;
 		end else begin
 			/* verilator lint_off WIDTHTRUNC */	
-			tmp[i] = $random;
+			tmp[i*8+:8] = $random;
 			/* verilator lint_on WIDTHTRUNC */	
 		end
 	end
@@ -68,7 +113,7 @@ task send_packet();
 	ctrl_v_i = 1'b1;
 	start_i = 'b1;
 	data_i = tmp[0+:DATA_W];
-	for(int i=1; i < `TB_PKT_LEN; i++) begin
+	for(int i=KEEP_W; i < TB_PKT_LEN/KEEP_W; i++) begin
 		#10
 		ctrl_v_i = 1'b0;
 		data_i = tmp[i*DATA_W+:DATA_W];	
