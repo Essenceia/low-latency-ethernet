@@ -7,7 +7,7 @@ localparam VLAN_TAG = 1;
 localparam IS_10G = 1;
 localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1;
 
-localparam START_CHAR = 8'haa;
+localparam [7:0] START_CHAR = 8'haa;
 
 reg   clk = 1'b0;
 /* verilator lint_off BLKSEQ */
@@ -23,22 +23,33 @@ logic                   idle_i;
 logic [LANE0_CNT_N-1:0] start_i;
 logic                   term_i;
 logic [KEEP_W-1:0]      term_keep_i;
+/* verilator lint_off UNUSEDSIGNAL */
 logic                   cancel_o;
 logic                   valid_o;
 logic [DATA_W-1:0]      data_o;
 logic [KEEP_W-1:0]      keep_o;
 logic                   crc_err_o;
+/* verilator lint_on UNUSEDSIGNAL */
 
 function void set_default();
 	cancel_i = 1'b0;
 	valid_i = 1'b0;
 	ctrl_v_i = 1'b0;
 	idle_i = 1'b0;
-	start_i = 2'b00;
+	start_i = {LANE0_CNT_N{1'b0}};
 	term_i = 1'b0;
 	term_keep_i = {KEEP_W{1'b0}};	
 	data_i = {DATA_W{1'b0}};
 endfunction
+
+task idle_cycle();
+	valid_i = 1'b1;
+	ctrl_v_i = 1'b1;
+	idle_i = 1'b1;
+	#10
+	ctrl_v_i = 1'b0;
+	idle_i = 1'b0;
+endtask
 
 /* Send simple random packet */
 task send_packet(); 
@@ -46,8 +57,10 @@ task send_packet();
 	for(int i=0; i < `TB_PKT_LEN*KEEP_W; i++) begin
 		if ( i == 0 ) begin
 			tmp[i] = START_CHAR;
-		end else begin	
+		end else begin
+			/* verilator lint_off WIDTHTRUNC */	
 			tmp[i] = $random;
+			/* verilator lint_on WIDTHTRUNC */	
 		end
 	end
 	set_default();
@@ -79,6 +92,9 @@ initial begin
 	set_default();
 	#10
 	nreset = 1'b1;
+
+	/* set idle cycle */
+	idle_cycle();
 
 	/* Test 1 */
 	$display("test 1 %t",$time);

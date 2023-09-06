@@ -54,7 +54,7 @@ ifeq ($(SIM),I)
 LINT_FLAGS +=-Wall -g2012 $(if $(assert),-gassertions) -gstrict-expr-width
 LINT_FLAGS +=$(if $(debug),-DDEBUG) 
 else
-LINT_FLAGS += -Wall -Wpedantic -Wno-GENUNNAMED -Wno-LATCH
+LINT_FLAGS += -Wall -Wpedantic -Wno-GENUNNAMED -Wno-LATCH -Wno-IMPLICIT
 endif
 
 # Lint commands.
