@@ -57,6 +57,7 @@ task idle_cycle();
 	idle_i = 1'b0;
 endtask
 
+
 function logic [HEAD_LEN*8-1:0] set_head();
 	static logic [HEAD_LEN*8-1:0] head;
 	/* preambule */
@@ -64,9 +65,9 @@ function logic [HEAD_LEN*8-1:0] set_head();
 
 	/* mac addr */
 	// coca cola company
-	static logic [6*8-1:0] dst_addr = {16'h0 ,32'hFCD4F2};
+	static logic [6*8-1:0] dst_addr = {24'h0 ,24'hFCD4F2};
 	// molex
-	static logic [6*8-1:0] src_addr = {16'h0 ,32'hF82F08};
+	static logic [6*8-1:0] src_addr = {24'h0 ,24'hF82F08};
 	
 
 	/* type and vlan */
@@ -93,7 +94,8 @@ endfunction
 
 /* Send simple random packet */
 task send_packet(); 
-	logic [TB_PKT_LEN*8-1:0] tmp;
+	logic [TB_PKT_LEN*8-1:0] tmp; 
+	tmp = {TB_PKT_LEN*8{1'bx}};
 	
 	/* head */
 	tmp[HEAD_LEN*8-1:0] = set_head();
