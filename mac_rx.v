@@ -30,10 +30,10 @@ module mac_rx #(
 	// frame check error
 	output crc_err_o
 );
-localparam PRE_N  = 1;
-localparam PRE_W  = PRE_N*8;;
+localparam PRE_N  = 8;
+//localparam PRE_W  = PRE_N*8;;
 localparam ADDR_N = 6;
-localparam ADDR_W = ADDR_N*8;
+//localparam ADDR_W = ADDR_N*8;
 localparam TYPE_N = 2;
 localparam TYPE_W = TYPE_N*8;
 localparam VLAN_N = ( VLAN_TAG )? 4 : 0; 
@@ -41,7 +41,7 @@ localparam HEAD_N = PRE_N + 2*ADDR_N + TYPE_N;
 localparam HEAD_VTAG_N = HEAD_N + VLAN_N;
 localparam CNT_W = $clog2(HEAD_VTAG_N); 
 /* header index */
-localparam TYPE_IDX = PRE_W + 2*ADDR_W;
+localparam TYPE_IDX = PRE_N + 2*ADDR_N;
 /* type : IPv4 */
 localparam IPV4 = 16'h0800; 
 /* vlan tag protocol identifier */
@@ -295,17 +295,21 @@ m_crc(
 	.crc_o(crc)
 );
 /* fsm */
+logic signal_v;
 logic term_v;
-assign term_v = valid_i & term_lite_v;
+assign term_v   = valid_i & term_lite_v;
+assign signal_v = valid_i & ~cancel_i;
 
-assign fsm_invalid_next = cancel_i 
-						| term_v;
-assign fsm_head_next = ~cancel_i 
+assign fsm_invalid_next = cancel_i
+						| ~valid_i 
+						| term_v & fsm_data_q
+						| fsm_invalid_q & ~start_v;
+assign fsm_head_next = signal_v 
 					 & (start_v 
 					 | fsm_head_q & ~type_v);
-assign fsm_data_next = ~cancel_i 
+assign fsm_data_next = signal_v
 					 & (fsm_head_q & type_v
-					 | fsm_data_q & term_v); 
+					 | fsm_data_q & ~term_v); 
 always @(posedge clk) begin
 	if ( ~nreset ) begin
 		fsm_invalid_q <= 1'b1;
