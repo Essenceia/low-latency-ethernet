@@ -22,6 +22,13 @@ ifndef assert
 assert:=1
 endif
 
+# Work in progress flag, used to bypass
+# some lint sanity checks during early
+# developpement
+ifndef wip
+wip:=
+endif
+
 ############
 # Sim type #
 ############
@@ -55,6 +62,7 @@ LINT_FLAGS +=-Wall -g2012 $(if $(assert),-gassertions) -gstrict-expr-width
 LINT_FLAGS +=$(if $(debug),-DDEBUG) 
 else
 LINT_FLAGS += -Wall -Wpedantic -Wno-GENUNNAMED -Wno-LATCH -Wno-IMPLICIT
+LINT_FLAGS +=$(if $(wip),-Wno-UNUSEDSIGNAL)
 endif
 
 # Lint commands.
