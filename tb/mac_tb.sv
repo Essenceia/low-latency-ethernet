@@ -8,12 +8,12 @@ localparam VLAN_TAG = 1;
 localparam IS_10G = 1;
 localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1;
 
-localparam [7:0] START_CHAR = 8'haa;
+//localparam [7:0] START_CHAR = 8'haa;
 localparam [15:0] VLAN_TYPE = 16'h8100;
 localparam [15:0] IPV4_TYPE = 16'h8000;
 
 localparam HEAD_LEN = 22 + ( VLAN_TAG ? 4 : 0 );
-localparam TB_PKT_LEN = HEAD_LEN + KEEP_W*`TB_DATA_CYCLES;
+//localparam TB_PKT_LEN = HEAD_LEN + KEEP_W*`TB_DATA_CYCLES;
 
 reg   clk = 1'b0;
 /* verilator lint_off BLKSEQ */
@@ -44,8 +44,8 @@ function void set_default();
 	idle_i = 1'b0;
 	start_i = {LANE0_CNT_N{1'b0}};
 	term_i = 1'b0;
-	term_keep_i = {KEEP_W{1'b0}};	
-	data_i = {DATA_W{1'b0}};
+	term_keep_i = {KEEP_W{1'bx}};	
+	data_i = {DATA_W{1'bx}};
 endfunction
 
 task idle_cycle();
@@ -93,40 +93,53 @@ function logic [HEAD_LEN*8-1:0] set_head();
 endfunction
 
 /* Send simple random packet */
-task send_packet(); 
-	logic [TB_PKT_LEN*8-1:0] tmp; 
-	tmp = {TB_PKT_LEN*8{1'bx}};
+task send_packet(int l); 
+	int s;
+	logic [DATA_W-1:0] tmp;
+	logic [HEAD_LEN*8-1:0] h; 
+	h = {HEAD_LEN*8{1'bx}};
 	
 	/* head */
-	tmp[HEAD_LEN*8-1:0] = set_head();
+	h = set_head();
 
-	/* set data packet content */
-	for(int i=HEAD_LEN; i < TB_PKT_LEN; i++) begin
-		if ( i == 0 ) begin
-			tmp[i*8+:8] = START_CHAR;
-		end else begin
-			/* verilator lint_off WIDTHTRUNC */	
-			tmp[i*8+:8] = $random;
-			/* verilator lint_on WIDTHTRUNC */	
-		end
-	end
+	/* set head */
 	set_default();
 	valid_i = 1'b1;
 	ctrl_v_i = 1'b1;
 	start_i = 'b1;
-	data_i = tmp[0+:DATA_W];
-	for(int i=KEEP_W; i < TB_PKT_LEN/KEEP_W; i++) begin
+	data_i = h[0+:DATA_W];
+	for(int i=KEEP_W; i < HEAD_LEN/KEEP_W; i++) begin
 		#10
 		ctrl_v_i = 1'b0;
-		data_i = tmp[i*DATA_W+:DATA_W];	
+		data_i = h[i*DATA_W+:DATA_W];	
 	end
-	#10
+	/* complete data if full header was not sent */
+	s = HEAD_LEN % KEEP_W;
+	for(int i=0; i<s; i++) begin
+		data_i[i*8+:8] = h[HEAD_LEN-(i*8)-1-:8];
+	end
+
+	/* send packet inner */
+	for(int i=s; i< l+s; i++) begin
+		/* verilator lint_off WIDTHTRUNC */	
+		data_i[(i%KEEP_W)*8+:8] = $random;
+		/* verilator lint_on WIDTHTRUNC */	
+		if((i+1)%KEEP_W == 0)begin
+			#10
+			data_i = {DATA_W{1'bx}};
+		end	
+	end	
 	/* send term */
-	data_i = {DATA_W{1'bX}};
+	for(int i=0; i<KEEP_W; i++)begin
+		if((l+s)%KEEP_W > i) begin
+			term_keep_i[i] = 1'b1;
+		end else begin
+			term_keep_i[i] = 1'b0;
+		end
+	end
 	ctrl_v_i = 1'b1;
 	term_i = 1'b1;
 	start_i = '0;
-	term_keep_i = {KEEP_W{1'b0}};
 	#10
 	ctrl_v_i = 1'b0;
 	valid_i = 1'b0;	
@@ -145,7 +158,7 @@ initial begin
 
 	/* Test 1 */
 	$display("test 1 %t",$time);
-	send_packet();
+	send_packet(3);
 	#10
 	$display("Test finished %t",$time);
 	$finish;
