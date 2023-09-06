@@ -156,9 +156,25 @@ initial begin
 	/* set idle cycle */
 	idle_cycle();
 
-	/* Test 1 */
+	/* Test 1 
+ 	 * simple packet, aligned on packet end  */
 	$display("test 1 %t",$time);
+	send_packet(8);
+	
+	idle_cycle();
+	idle_cycle();
+	/* Test 2 
+ 	 * simple packet, end of packet not
+ 	 * aligned on payload  */
+	$display("test 2 %t",$time);
 	send_packet(3);
+	idle_cycle();
+	idle_cycle();
+	/* Test 3
+ 	 * long simple packet */
+	$display("test 3 %t",$time);
+	send_packet(34);
+	idle_cycle();
 	#10
 	$display("Test finished %t",$time);
 	$finish;
