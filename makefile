@@ -36,6 +36,7 @@ $(info Using simulator: $(SIM))
 
 # Global configs.
 TB_DIR := tb
+REF_DIR := $(TB_DIR)/ref
 CONF := conf
 WAVE_DIR := wave
 VIEW := gtkwave
@@ -127,22 +128,21 @@ build:
 ########
 
 # Dependencies for linter.
-mac_rx_deps :=mac_rx.v crc_rx.v
-mac_tx_deps := 
+crc_deps := crc32.v
+mac_deps +=crc.v mac_rx.v
 
 lint_rx :$(mac_rx_deps)
 	$(call LINT,$^,mac_rx)
 
-lint_tx :$(mac_tx_deps)
-	$(call LINT,$^,mac_tx)
-
+lint_crc: $(crc_deps)
+	$(call LINT,$^,crc_tb)
 
 #############
 # Testbench #
 #############
 
 # The list of testbenches.
-tbs := crc max_rx max_tx
+tbs := crc mac
 
 # Standard run recipe to build a given testbench
 define build_recipe
@@ -152,9 +152,8 @@ $1_tb: $$($(1)_deps)
 endef
 
 # Dependencies for each testbench
-crc_deps :=crc_rx.v $(TB_DIR)/crc_tb.sv
-mac_rx_deps +=$(TB_DIR)/mac_rx_tb.sv
-mac_tx_deps :=mac_tx.v $(TB_DIR)/mac_tx_tb.sv
+crc_deps :=crc32.v crc32_v2.v $(REF_DIR)/lfsr.v $(TB_DIR)/crc_tb.sv
+mac_deps +=crc.v mac_rx.v $(TB_DIR)/mac_tb.sv
 
 # Standard run recipe to run a given testbench
 define run_recipe

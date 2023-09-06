@@ -9,10 +9,10 @@ module mac_rx #(
 	input clk,
 	input nreset,
 
+	input                   cancel_i,
 	// from physical layer
-	input              valid_i,
-	input              cancel_i,
-	input [DATA_W-1:0] data_i,
+	input                   valid_i,
+	input [DATA_W-1:0]      data_i,
 	input                   ctrl_v_i,
 	input                   idle_i,
 	input [LANE0_CNT_N-1:0] start_i,
@@ -20,7 +20,10 @@ module mac_rx #(
 	input [KEEP_W-1:0]      term_keep_i,
 
 	// to IP layer
-	output              valid_o,// data valid
+	// propagate cancel with added conditions
+	output              cancel_o,
+	// data
+	output              valid_o,
 	output [DATA_W-1:0] data_o,
 	output [KEEP_W-1:0] keep_o,
 
@@ -59,7 +62,9 @@ logic fsm_crc_next;
 
 /* start of a new packet */
 logic start_v;
-assign start_v = fsm_invalid_q & (valid_i & ctrl_v_i & |start_i);
+logic start_lite_v;
+assign start_lite_v = ctrl_v_i & |start_i;
+assign start_v = valid_i & start_lite_v;
 
 /* handle header : ignore all information
  * without vtag :
@@ -81,7 +86,7 @@ logic [CNT_W-1:0] data_cnt;
 /* cnt the number of bytes received from the PCS */
 if ((DATA_W == 64) && (IS_10G == 1)) begin
 	/* first packet can have 4 or 8 bytes of data */
-	assign data_cnt = start_v ? (start_i[1] ? 'd4 : 'd8): 8;
+	assign data_cnt = start_lite_v ? (start_i[1] ? 'd4 : 'd8): 8;
 end else begin
 	assign data_cnt = (DATA_W/8);
 end
@@ -256,7 +261,7 @@ end else begin
 				assign head_data_shift2 = 1'b1;
 			end
 		end
-		assign head_data_shifter = head_data_shift2
+		assign head_data_shifted = head_data_shift2
 								 ? {data_i[DATA_W-:TYPE_W], {DATA_W-TYPE_W{1'bx}}}
 								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}}};
 		assign head_data_keep = {2'b0, {4{~head_data_shift2}}, 2'b11};  
@@ -269,7 +274,7 @@ logic [CRC_W-1:0] crc;
 /* crc starts after preamble */
 assign crc_start_v = cnt_q == 8;
 
-crc_rx #(.DATA_W(DATA_W), .SUM_W(CRC_W))
+crc #(.DATA_W(DATA_W), .CRC_W(CRC_W))
 m_crc(
 	.clk(clk),
 	.start_i(crc_start_v),
