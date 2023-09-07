@@ -177,10 +177,12 @@ end else begin
 
 		/* TODO : 40G : stall progress of shift on invalid blocks
 		 * to support alignement marker removal */
-		assign type_lsb_v_next[TYPE_CNT_W-1] = vlan_v & ~cnt_q[2];
+		assign type_lsb_v_next[TYPE_CNT_W-1] = fsm_head_q & vlan_v & ~cnt_q[2];
+
 		if ( DATA_W == 16 ) begin
-		assign type_lsb_v_next[0] = vlan_v ? 1'b0 : type_lsb_v_q[1];
+			assign type_lsb_v_next[0] = vlan_v ? 1'b0 : type_lsb_v_q[1];
 		end
+
 		always @(posedge clk) begin
 			type_lsb_v_q <= type_lsb_v_next;
 		end	
@@ -188,6 +190,7 @@ end else begin
 		assign type_v = ( vlan_idx_v & ~vlan_v ) | type_lsb_v_q[0];
 
 	end else begin
+		/* !VLAN_TAG */
 		assign type_v = cnt_q == TYPE_IDX;
 	end // vlan_tag
 end
