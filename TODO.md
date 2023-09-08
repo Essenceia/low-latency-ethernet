@@ -6,4 +6,11 @@
     - get output data per cycle
 
 - rx tb:
-    - test different packet widths
+    - write generic tb function to configure packet type,
+    features :
+        - vtag 
+        - mac addr
+        - type 
+    - test bypass funcitonality : wrong type/ error in mac
+    - test cancel
+

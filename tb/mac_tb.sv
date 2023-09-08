@@ -8,9 +8,10 @@ localparam VLAN_TAG = 1;
 localparam IS_10G = 1;
 localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1;
 
+localparam TYPE_W = 16;
 //localparam [7:0] START_CHAR = 8'haa;
-localparam [15:0] VLAN_TYPE = 16'h8100;
-localparam [15:0] IPV4_TYPE = 16'h8000;
+localparam [TYPE_W-1:0] VLAN_TYPE = 16'h8100;
+localparam [TYPE_W-1:0] IPV4_TYPE = 16'h8000;
 
 localparam HEAD_LEN = 22 + ( VLAN_TAG ? 4 : 0 );
 //localparam TB_PKT_LEN = HEAD_LEN + KEEP_W*`TB_DATA_CYCLES;
@@ -56,28 +57,29 @@ task idle_cycle();
 	ctrl_v_i = 1'b0;
 	idle_i = 1'b0;
 endtask
-
-
-function logic [HEAD_LEN*8-1:0] set_head();
-	static logic [HEAD_LEN*8-1:0] head;
+/* set mac header function
+ * ipv4_v : set type to IPV4
+ * has_vtag : include vtag */
+function automatic logic [HEAD_LEN*8-1:0] set_head(int ipv4_v,int has_vtag );
+	logic [HEAD_LEN*8-1:0] head;
 	/* preambule */
-	static logic [63:0] pre = {56'hAAAAAAAAAAAAAA, 8'hAB};
+	logic [63:0] pre = {56'hAAAAAAAAAAAAAA, 8'hAB};
 
 	/* mac addr */
 	// coca cola company
-	static logic [6*8-1:0] dst_addr = {24'h0 ,24'hFCD4F2};
+	logic [6*8-1:0] dst_addr = {24'h0 ,24'hFCD4F2};
 	// molex
-	static logic [6*8-1:0] src_addr = {24'h0 ,24'hF82F08};
+	logic [6*8-1:0] src_addr = {24'h0 ,24'hF82F08};
 	
 
 	/* type and vlan */
-	static logic [15:0] h_type = IPV4_TYPE;
+	logic [TYPE_W-1:0] h_type = {TYPE_W{ipv4_v!=0}} & IPV4_TYPE | {TYPE_W{ipv4_v == 0}};;
 
-	if ( VLAN_TAG ) begin
-		static logic [31:0] vlan_tag;
-		static logic [2:0]  pcp;
-		static logic        dei;
-		static logic [11:0] vid;
+	if ( VLAN_TAG && (has_vtag!=0)) begin
+		logic [31:0] vlan_tag;
+		logic [2:0]  pcp;
+		logic        dei;
+		logic [11:0] vid;
 
 		/* verilator lint_off WIDTHTRUNC */
 		{ vid, dei, pcp } = $random; 
@@ -86,21 +88,23 @@ function logic [HEAD_LEN*8-1:0] set_head();
 		vlan_tag = {vid, dei, pcp, VLAN_TYPE};
 		head[HEAD_LEN*8-1-:8*6] = {h_type, vlan_tag};	
 	end else begin
-		head[HEAD_LEN*8-1-:16] = h_type;	
+		head[22*8-1-:16] = h_type;	
 	end
 	head[20*8-1:0] = {src_addr, dst_addr, pre};
 	return head;
 endfunction
 
 /* Send simple random packet */
-task send_packet(int l); 
+task send_packet(int l, int ipv4_v, int has_vtag); 
 	int s;
+	int h_l;
 	logic [DATA_W-1:0] tmp;
 	logic [HEAD_LEN*8-1:0] h; 
 	h = {HEAD_LEN*8{1'bx}};
 	
 	/* head */
-	h = set_head();
+	h_l = (has_vtag != 0)? 26 : 22;
+	h = set_head(ipv4_v, has_vtag);
 
 	/* set head */
 	set_default();
@@ -108,15 +112,17 @@ task send_packet(int l);
 	ctrl_v_i = 1'b1;
 	start_i = 'b1;
 	data_i = h[0+:DATA_W];
-	for(int i=KEEP_W; i < HEAD_LEN/KEEP_W; i++) begin
-		#10
+	#10
+	for(int i=KEEP_W; i < h_l/KEEP_W; i++) begin
 		ctrl_v_i = 1'b0;
 		data_i = h[i*DATA_W+:DATA_W];	
+		#10
+		data_i = {DATA_W{1'bx}};
 	end
 	/* complete data if full header was not sent */
-	s = HEAD_LEN % KEEP_W;
+	s = h_l % KEEP_W;
 	for(int i=0; i<s; i++) begin
-		data_i[i*8+:8] = h[HEAD_LEN-(i*8)-1-:8];
+		data_i[i*8+:8] = h[h_l-(i*8)-1-:8];
 	end
 
 	/* send packet inner */
@@ -155,11 +161,12 @@ initial begin
 
 	/* set idle cycle */
 	idle_cycle();
+	idle_cycle();
 
 	/* Test 1 
  	 * simple packet, aligned on packet end  */
 	$display("test 1 %t",$time);
-	send_packet(8);
+	send_packet(8,1,1);
 	
 	idle_cycle();
 	idle_cycle();
@@ -167,15 +174,23 @@ initial begin
  	 * simple packet, end of packet not
  	 * aligned on payload  */
 	$display("test 2 %t",$time);
-	send_packet(3);
+	send_packet(3,1,1);
 	idle_cycle();
 	idle_cycle();
 	/* Test 3
  	 * long simple packet */
 	$display("test 3 %t",$time);
-	send_packet(34);
+	send_packet(34,1,1);
 	idle_cycle();
 	#10
+
+	/* Test 4
+ 	 * wrong type, testing bypass functionality */
+	$display("test 4 %t",$time);
+	send_packet(8,0,1);
+	idle_cycle();
+	#10
+
 	$display("Test finished %t",$time);
 	$finish;
 end

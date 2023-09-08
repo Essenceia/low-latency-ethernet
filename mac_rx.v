@@ -41,7 +41,7 @@ localparam HEAD_N = PRE_N + 2*ADDR_N + TYPE_N;
 localparam HEAD_VTAG_N = HEAD_N + VLAN_N;
 localparam CNT_W = $clog2(HEAD_VTAG_N); 
 /* header index */
-localparam TYPE_IDX = PRE_N + 2*ADDR_N;
+localparam TYPE_IDX = PRE_N + 2*ADDR_N - KEEP_W;
 /* type : IPv4 */
 localparam IPV4 = 16'h0800; 
 /* vlan tag protocol identifier */
