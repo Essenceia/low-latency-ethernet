@@ -1,12 +1,13 @@
 *
-!Makefile
 !doc
 !doc/**
 !*.v
+!*.sv
+!*.md
 !.gitignore
 !.gitattribute
 !.gitmodules
-!Makefile
+!makefile
 !*.jpg
 !tcl
 !*.tcl
@@ -18,3 +19,6 @@
 !tb
 !tv
 !*.c
+!*.cpp
+!*.h
+!*.hpp
