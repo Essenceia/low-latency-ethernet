@@ -1,6 +1,3 @@
 [submodule "phy"]
 	path = phy
 	url = https://github.com/Essenceia/ethernet-physical-layer.git
-[submodule "mac"]
-	path = mac
-	url = git@github.com:Essenceia/mac.git
