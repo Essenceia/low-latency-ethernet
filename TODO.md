@@ -1,5 +1,7 @@
 # TODO list
 
+- lint
+
 - Write C libs for tb, need to support :
     - crc generation and check
     - mac packet generation
