@@ -35,7 +35,7 @@ module ipv4_rx #(
 	input [LEN_W-1:0]  len_i,
 
 	/* Transport */
-	output valid_o,
+	output              valid_o,
 	output [DATA_W-1:0] data_o,
 	output [LEN_W-1:0]  len_o,
 
@@ -82,7 +82,7 @@ logic fsm_data_next;
  * cnt the number of received header bytes */
 reg   [TOT_LEN_W-1:0] cnt_q;
 logic [TOT_LEN_W-1:0] cnt_next;
-logicHSTOT_LEN_W-1:0] cnt_lite_next;
+logic [TOT_LEN_W-1:0] cnt_lite_next;
 logic [TOT_LEN_W-1:0] cnt_add;
 logic                  unused_cnt_lite_next_of;
 logic                  cnt_rst;
@@ -165,7 +165,7 @@ logic dcd_v;
 logic version_dcd_lite_v;
 logic frag_dcd_lite_v;
 logic prot_dcd_lite_v;
-logic hs_dcd_lite_v;
+logic cs_err_v;
 
 
 assign version_dcd_lite_v = version_lite_v & (version != VERSION);
@@ -173,11 +173,11 @@ assign version_dcd_lite_v = version_lite_v & (version != VERSION);
 assign frag_dcd_lite_v = frag_flag_lite_v & (frag_flag != FRAG_FLAG);
 assign prot_dcd_lite_v = protocol_lite_v & (protocol != PROTOCOL);
 
-assign hs_dcd_lite_v = fsm_data_q & ( cs_q != head_checksum_q );
+assign cs_err_v = fsm_data_q & ( cs_q != head_checksum_q );
 
 assign dcd_v = version_dcd_lite_v 
 			 | ( valid_i & fsm_head_q ) & ( frag_dcd_lite_v | prot_dcd_lite_v )
-			 | hs_dcd_lite_v; 
+			 | cs_err_v; 
 /* data bypass, packet filtering */
 reg   bypass_v_q;
 logic bypass_v_next;
@@ -185,6 +185,10 @@ logic bypass_v_rst;
 
 assign bypass_v_rst = cnt_rst;
 assign bypass_v_next = bypass_v_rst ? 1'b0 : bypass_v_q | dcd_v ; 
+
+always @(posedge clk) begin
+	bypass_v_q <= bypass_v_next;
+end
 
 /* total length */
 reg   [TOT_LEN_W-1:0] tot_len_q;
@@ -202,7 +206,7 @@ end
  * data there is no term signal expected from pcs
  * because of the additional mac footer for the crc. */
 logic end_data_v;
-assign end_data_v = cnt_lite_next >= tot_len_q;
+assign end_data_v = cnt_add >= tot_len_q;
  
 /* fsm */
 assign fsm_idle_next = cancel_i 
@@ -223,4 +227,13 @@ always @(posedge clk) begin
 	end
 end
 
+/* output */
+/* for DATA_W = 16 data is never partial: 
+ * input data = output data, input len = output len */
+assign valid_o = valid_i & fsm_data_q &  ~bypass_v_q;
+assign data_o  = data_i;
+assign len_o   = len_i;
+/* cs error will be transmitied in the first cycle of valid data
+ * for transport layer */
+assign cs_err_o = cs_err_v; 
 endmodule
