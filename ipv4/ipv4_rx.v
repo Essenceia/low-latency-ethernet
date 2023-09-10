@@ -11,8 +11,8 @@
  * Note :
  * We do not check src or dst addresses, we assume the routing
  * is point-to-point and correctly delivering packets.
- */
-
+ *
+ * Currently only support DATA_W = 16 */
 module ipv4_rx #(
 	parameter DATA_W = 16,
 	parameter LEN_W = $clog2(DATA_W/8),
@@ -43,9 +43,16 @@ module ipv4_rx #(
  	 * checksum error */
 	output cs_err_o
 );
-localparam [3:0] VERSION = 4'b0100; /* v4 */
+localparam IHL_W     = 4; /* Ip Header Lenght */ 
+localparam V_W       = 4;
 localparam TOT_LEN_W = 16;
-localparam IHL_W = 4; /* Ip Header Lenght */ 
+localparam FF_W      = 3; 
+localparam CS_W      = 16;
+localparam [V_W-1:0] VERSION    = 4'b0100; /* v4 */
+localparam [FF_W-1:0] FRAG_FLAG = 3'h3; /* no fragmentation */
+
+localparam MAX_HEAD_N = 60;/* supporting options by default */
+localparam HEAD_W     = $clog(MAX_HEAD_N);
 
 /* fsm */
 reg   fsm_idle_q;
@@ -73,15 +80,18 @@ logic fsm_data_next;
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ 
  *
  * cnt the number of received header bytes */
-reg   [IHL_W-1:0] cnt_q;
-logic [IHL_W-1:0] cnt_next;
-logic [IHL_W-1:0] cnt_add;
-logic             unused_cnt_add_of;
-logic             cnt_rst;
+reg   [TOT_LEN_W-1:0] cnt_q;
+logic [TOT_LEN_W-1:0] cnt_next;
+logicHSTOT_LEN_W-1:0] cnt_lite_next;
+logic [TOT_LEN_W-1:0] cnt_add;
+logic                  unused_cnt_lite_next_of;
+logic                  cnt_rst;
+
+assign cnt_add = {{TOT_LEN_W-LEN_W{1'b0}}, {LEN_W{valid_i}} & len_i}; 
+assign {unused_cnt_lite_next_of, cnt_lite_next} = cnt_q + cnt_add;
 
 assign cnt_rst  = fsm_idle_q & ~valid_i;
-assign {unused_cnt_add_of, cnt_add} = cnt_q + ( DATA_W/8 );
-assign cnt_next = cnt_rst ? {IHL_W{1'b0}} : cnt_add;
+assign cnt_next = cnt_rst ? {TOT_LEN_W{1'b0}} : cnt_lite_next;
 
 always @(posedge clk) begin
 	cnt_q <= cnt_next;
@@ -94,35 +104,107 @@ logic             ihl_en;
 
 assign ihl_en   = fsm_idle_q;
 assign ihl_next = data_i[7:4];
+
 always @(posedge clk) begin
 	ihl_q <= ihl_next;
 end
 
+
 /* track end of header */
 logic end_head_v;
-assign end_head_v = cnt_next >= ihl_q;
+assign end_head_v = cnt_lite_next[IHL_W-1:0] >= ihl_q | |cnt_q[TOT_LEN_W-1:IHL_W];
 
+/* head field values and data valid signals */
+logic [V_W-1:0] version;
+logic           version_lite_v;
+assign version        = data_i[V_W-1:0];
+assign version_lite_v = fsm_idle_q; 
+
+logic [FF_W-1:0] frag_flag;
+logic            frag_flag_lite_v;
+assign frag_flag        = data_i[FF_W-1:0];
+assign frag_flag_lite_v = cnt_q[HEAD_W-1:0] == 'd3;
+
+logic [PROT_W-1:0] protocol;
+logic              protocol_lite_v;
+assign protocol        = data_i[DATA_W-1-:PROT_W];
+assign protocol_lite_v = cnt_q[HEAD_W-1:0] == 'd4;
+
+/* save the header checksum to be compared once the full checksum calculation
+ * has been completed */
+reg   [CS_W-1:0] head_checksum_q;
+logic [CS_W-1:0] head_checksum_next;
+logic            head_checksum_en;
+assign head_checksum_next = data_i;
+assign head_checksum_en   = cnt_q[HEAD_W-1:0] == 'd5;
+always @(posedge clk) begin
+	head_checksum_q <= head_checksum_next;
+end
+
+/* Checksum calculation */
+reg   [CS_W-1:0] cs_q;
+logic            unused_cs_add;
+logic [CS_W-1:0] cs_add;
+logic [CS_W-1:0] cs_next;
+logic            cs_en;
+logic            cs_rst;
+
+assign cs_rst = cnt_rst;
+/* don't include head checksum in the checksum calculation */
+assign cs_en  = valid_i & ~fsm_data_q & ~head_checksum_lite_v;
+
+assign { unused_cs_of, cs_add} = cs_q + data_i;
+assign cs_next = cs_rst ? {CS_W{1'b0}} : cs_add;
+
+always @(posedge clk) begin
+	cs_q <= cs_next;
+end
 
 /* discard valid signals: don't match accepted */
 logic dcd_v;
-logic version_dcd_v;
-logic frag_dcd_v;
-logic prot_dcd_v;
-logic hs_dcd_v;
+logic version_dcd_lite_v;
+logic frag_dcd_lite_v;
+logic prot_dcd_lite_v;
+logic hs_dcd_lite_v;
 
-assign version_dcd_v = 1'b0; 
 
+assign version_dcd_lite_v = version_lite_v & (version != VERSION);
+ 
+assign frag_dcd_lite_v = frag_flag_lite_v & (frag_flag != FRAG_FLAG);
+assign prot_dcd_lite_v = protocol_lite_v & (protocol != PROTOCOL);
+
+assign hs_dcd_lite_v = fsm_data_q & ( cs_q != head_checksum_q );
+
+assign dcd_v = version_dcd_lite_v 
+			 | ( valid_i & fsm_head_q ) & ( frag_dcd_lite_v | prot_dcd_lite_v )
+			 | hs_dcd_lite_v; 
 /* data bypass, packet filtering */
 reg   bypass_v_q;
 logic bypass_v_next;
 logic bypass_v_rst;
 
 assign bypass_v_rst = cnt_rst;
-assign bypass_v_next = bypass_v_rst ? 1'b0 ; bypass_v_q | dcd_v ; 
+assign bypass_v_next = bypass_v_rst ? 1'b0 : bypass_v_q | dcd_v ; 
 
-/* fsm */
+/* total length */
+reg   [TOT_LEN_W-1:0] tot_len_q;
+logic [TOT_LEN_W-1:0] tot_len_next;
+logic                 tot_len_en;
+
+assign tot_len_en   = cnt_q == 'd2;
+assign tot_len_next = data_i; 
+always @(posedge clk) begin
+	tot_len_q <= tot_len_next;
+end
+
+/* data end
+ * ip needs to keep track itself of the end of the
+ * data there is no term signal expected from pcs
+ * because of the additional mac footer for the crc. */
 logic end_data_v;
-
+assign end_data_v = cnt_lite_next >= tot_len_q;
+ 
+/* fsm */
 assign fsm_idle_next = cancel_i 
 					 | fsm_data_q & end_data_v;
 assign fsm_head_next = fsm_idle_q & valid_i

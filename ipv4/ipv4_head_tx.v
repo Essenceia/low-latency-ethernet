@@ -32,11 +32,11 @@ localparam [15:0] FRAG_ID = 16'b0;
 localparam [2:0]  FRAG_FLAG = 3'h3; 
 localparam [12:0] FRAG_OFF = 13'b0;
 localparam [LEN_W-1:0] HEAD_LEN = HEAD_N;
-/* CRC */
-localparam CRC_W = 16;
-/* Pre-caclculated static crc value based on the static parameters
+/* Checksum */
+localparam CS_W = 16;
+/* Pre-caclculated static cs value based on the static parameters
  * of the ip header */
-localparam [CRC_W-1:0] CRC_BASE_VAL = { VERSION, IHL, DSCP, ENC } + HEAD_LEN + 
+localparam [CS_W-1:0] CS_BASE_VAL = { VERSION, IHL, DSCP, ENC } + HEAD_LEN + 
     + FRAG_ID + { FRAG_FLAG, FRAG_OFF} 
 	+ { TTL, PROTOCOL } 
 	+ SRC_ADDR[63:32] + SRC_ADDR[31:0]
@@ -47,14 +47,14 @@ logic             unused_tot_len_of;
 logic [LEN_W-1:0] tot_len;
 assign { unused_tot_len_of, tot_len } = data_len_i + HEAD_LEN;
 
-/* crc */
-logic             unused_crc_of;
-logic [CRC_W-1:0] crc;
-assign { unused_crc_of, crc } = CRC_BASE_VAL + data_len_i;
+/* checksum */
+logic            unused_cs_of;
+logic [CS_W-1:0] cs;
+assign { unused_cs_of, cs } = CS_BASE_VAL + data_len_i;
 
 /* output */
 assign head_o = { DST_ADDR, SRC_ADDR, 
-	crc, PROTOCOL, TTL, 
+	cs, PROTOCOL, TTL, 
 	FRAG_OFF, FRAG_FLAG, FRAG_ID, 
 	tot_len, ENC, DSCP, IHL, VERSION};
 
