@@ -43,9 +43,9 @@ localparam CNT_W = $clog2(HEAD_VTAG_N);
 /* header index */
 localparam TYPE_IDX = PRE_N + 2*ADDR_N - KEEP_W;
 /* type : IPv4 */
-localparam IPV4 = 16'h0800; 
+localparam [TYPE_W-1:0] IPV4 = 16'h0800; 
 /* vlan tag protocol identifier */
-localparam TPIC = 16'h8100;
+localparam [TYPE_W-1:0] TPIC = 16'h8100;
 /* CRC */
 localparam CRC_W = 32;
 
@@ -109,6 +109,20 @@ logic [TYPE_W-1:0] type_id;
 logic              type_v;// type index valid
 logic              type_err_v;// type content matches accepted packet expectations, eg : IPv4
 
+if (VLAN_TAG) begin
+	/* verilator lint_off UNDRIVEN */
+	/* verilator lint_off UNUSEDSIGNAL */
+	logic [TYPE_W-1:0] vlan_id;
+	logic              vlan_idx_v;
+	logic              vlan_v;
+	logic              tpic_v;
+	
+	assign tpic_v = vlan_id == TPIC;
+	assign vlan_v = vlan_idx_v & tpic_v;
+	/* verilator lint_on UNUSEDSIGNAL */
+	/* verilator lint_on UNDRIVEN */
+end
+
 if ((DATA_W == 64) && (IS_10G))begin
 	/* vlan tag and type index or type starts at 20 bytes, so the type field may
 	 * not fall on the first indexes of the data depending on if
@@ -125,21 +139,22 @@ if ((DATA_W == 64) && (IS_10G))begin
 	if ( VLAN_TAG ) begin
 		/* vlan and type may be received in the same packet
  		 * or in 2 consecutive packets */ 
-		logic [TYPE_W-1:0] vlan_id;
-		logic              vlan_idx_v;
-		logic              vlan_v;
-		logic              tpic_v;
-
 		assign vlan_idx_v = cnt_q[4] & ~cnt_q[3] & &(~cnt_q[1:0]); 
-		assign vlan_id = cnt_q[2] ? lite_type_id[0] : lite_type_id[1];
-		assign tpic_v = vlan_id == TPIC;
-		assign vlan_v = vlan_idx_v & tpic_v;
-		
+
+		/* verilator lint_off UNUSEDSIGNAL */
+		assign vlan_id = cnt_q[2] ? lite_type_id[0] : lite_type_id[1];	
+		/* verilator lint_on UNUSEDSIGNAL */
+	
 		/* get type */
 		reg   type_lsb_v_q;	
 		logic type_lsb_v_next;
 
+		/* verilator lint_off UNDRIVEN */
+		/* verilator lint_off UNUSEDSIGNAL */
 		assign type_lsb_v_next = vlan_v & ~cnt_q[2];
+		/* verilator lint_on UNUSEDSIGNAL */
+		/* verilator lint_on UNDRIVEN */
+
 		always @(posedge clk) begin
 			type_lsb_v_q <= type_lsb_v_next;
 		end	
@@ -156,18 +171,15 @@ if ((DATA_W == 64) && (IS_10G))begin
 	end // vlan tag
 end else begin
 	// DATA_W {16, 32}
+	/* verilator lint_off WIDTHTRUNC */
 	assign type_id = data_i[TYPE_W-1:0];
+	/* verilator lint_on WIDTHTRUNC */
 
 	if ( VLAN_TAG) begin
-		logic [TYPE_W-1:0] vlan_id;
-		logic              vlan_idx_v;
-		logic              vlan_v;
-		logic              tpic_v;
-		
 		assign vlan_idx_v = cnt_q == TYPE_IDX;
+		/* verilator lint_off WIDTHTRUNC */
 		assign vlan_id = data_i[TYPE_W-1:0];
-		assign tpic_v = vlan_id == TPIC;
-		assign vlan_v = vlan_idx_v & tpic_v;
+		/* verilator lint_on WIDTHTRUNC */
 	
 		/* get type, delay for 1 or 2 cycles depending on
  		 * data size, vlan tag is 4 bytes long */
@@ -214,7 +226,6 @@ end
 
 /* data and keep */
 logic              term_lite_v;
-logic [KEEP_W-1:0] term_data_keep;
 logic              data_lite_v;
 
 assign term_lite_v = ctrl_v_i & term_i;
@@ -227,7 +238,7 @@ if ( DATA_W == 16 ) begin
 end else begin 
 	/* if DATA_W > 16 need to shift data because of header */
 	logic [KEEP_W-1:0] head_data_keep;
-	logic [KEEP_W-1:0] head_data_shifted;
+	logic [DATA_W-1:0] head_data_shifted;
 	logic              head_data_lite_v;
 
 	assign head_data_lite_v = type_v;
@@ -241,7 +252,7 @@ end else begin
 	if ( DATA_W == 32 ) begin
 		/* with or whitout vtag data will be on the 2 msb bytes after the type */
 		assign head_data_keep = {2'b0, 2'b11};
-		assign head_data_shifted = data_i[DATA_W-:TYPE_W];
+		assign head_data_shifted = { {TYPE_W{1'bx}}, data_i[DATA_W-:TYPE_W]};
 	end else if ( DATA_W == 64 ) begin
 		/* cnt_q[2] = 20, start 2nd lane0 
  		 * no vtag :
@@ -269,7 +280,9 @@ end else begin
 				assign head_data_shift2 = 1'b1;
 			end
 		end
+		/* verilator lint_off UNUSEDSIGNAL */
 		assign head_data_shifted = head_data_shift2
+		/* verilator lint_on UNUSEDSIGNAL */
 								 ? {data_i[DATA_W-:TYPE_W], {DATA_W-TYPE_W{1'bx}}}
 								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}}};
 		assign head_data_keep = {2'b0, {4{~head_data_shift2}}, 2'b11};  
@@ -280,9 +293,6 @@ end
 logic             crc_start_v;
 logic             crc_err_v;
 logic [CRC_W-1:0]  crc;
-
-logic [DATA_W-1:0] crc_data;
-logic [KEEP_W-1:0] crc_keep;
 
 /* crc starts after preamble */
 assign crc_start_v = cnt_q == 8;
