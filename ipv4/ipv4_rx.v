@@ -33,15 +33,15 @@ module ipv4_rx #(
 	input valid_i,
 	input [DATA_W-1:0] data_i,
 	input [LEN_W-1:0]  len_i,
+	/* error detection 
+ 	 * checksum error */
+	output              cs_err_o,
 
 	/* Transport */
 	output              valid_o,
+	output              cancel_o,
 	output [DATA_W-1:0] data_o,
-	output [LEN_W-1:0]  len_o,
-
-	/* error detection 
- 	 * checksum error */
-	output cs_err_o
+	output [LEN_W-1:0]  len_o
 );
 localparam IHL_W     = 4; /* Ip Header Lenght */ 
 localparam V_W       = 4;

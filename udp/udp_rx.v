@@ -8,13 +8,10 @@
 module udp_rx #(
 	parameter DATA_W  = 16,
 	parameter LEN_W   = $clog2(DATA_W/8),
-	/* match src/dst port address, bypass
- 	 * packet if addr doesn't match */
-	parameter MATCH_SRC_PORT = 1,
 	/* port number */
 	parameter PORT_W   = 16,
-	parameter [PORT_W-1:0] SRC_PORT = 'd18070,
-	parameter [PORT_W-1:0] DST_PORT = 'd18070
+	parameter [PORT_W-1:0] SRC_PORT = 16'd18070,
+	parameter [PORT_W-1:0] DST_PORT = 16'd18070
 )
 (
 	input clk,
@@ -29,9 +26,10 @@ module udp_rx #(
 	
 	// to application layer
 	output              valid_o,
-	output              last_o,
+	//output              last_o,TODO: check if we can do without
 	output [DATA_W-1:0] data_o, 
-	output [LEN_W-1:0]  len_o	
+	output [LEN_W-1:0]  len_o,
+	output              cancel_o	
 );
 localparam CNT_W = 16;
 localparam HEAD_N = 8;
