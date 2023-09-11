@@ -66,11 +66,8 @@ LINT_FLAGS +=$(if $(wip),-Wno-UNUSEDSIGNAL)
 endif
 
 # Lint commands.
-# TODO ONELINER
 ifeq ($(SIM),I)
 define LINT
-	$(info 1 $(1))
-	$(info 2 $(2))
 	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
 endef
 else
@@ -136,15 +133,40 @@ build:
 ########
 
 # Dependencies for linter.
-crc_deps := crc32.v
-mac_deps +=crc.v mac_rx.v
+MAC_DIR = mac
+IP_DIR = ipv4
+UDP_DIR = udp
+UTILS_DIR = ../utils
 
-lint_mac :$(mac_deps)
+crc_f := crc32.v
+mac_f :=crc.v mac_rx.v $(crc_deps)
+ip_f := ipv4_rx.v ipv4_head_tx.v
+udp_f := udp_head_tx.v udp_rx.v 
+utils_f := thermo_to_len.v
+ 
+# add dir names
+mac_deps := $(foreach x,$(mac_f),$(MAC_DIR)/$x) 
+ip_deps := $(foreach x,$(ip_f),$(IP_DIR)/$x)
+udp_deps := $(foreach x,$(udp_f),$(UDP_DIR)/$x) 
+utils_deps := $(foreach x,$(utils_f),$(UTILS_DIR)/$x)
+
+top_deps := eth_rx.v $(mac_deps) $(ip_deps) $(udp_deps) $(utils_deps)
+
+lint_mac: $(mac_deps)
 	$(call LINT,$^,mac_rx)
 
 lint_crc: $(crc_deps)
 	$(call LINT,$^,crc_tb)
 
+lint_ip: $(ip_deps)
+	$(call LINT,$^,ipv4_rx)
+
+lint_udp: $(udp_deps)
+	$(call LINT,$^,udp_rx)
+
+lint_top: $(top_deps)
+	$(call LINT,$^,eth_rx)
+ 
 #############
 # Testbench #
 #############
@@ -162,6 +184,7 @@ endef
 # Dependencies for each testbench
 crc_deps :=crc32.v crc32_v2.v $(REF_DIR)/lfsr.v $(TB_DIR)/crc_tb.sv
 mac_deps +=crc.v mac_rx.v $(TB_DIR)/mac_tb.sv
+
 
 # Standard run recipe to run a given testbench
 define run_recipe

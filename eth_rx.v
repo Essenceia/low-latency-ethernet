@@ -40,6 +40,7 @@ logic              mac_cancel;
 // mac -> ip
 logic              ip_valid;
 logic [DATA_W-1:0] ip_data;
+logic [KEEP_W-1:0] ip_keep;
 logic [LEN_W-1:0]  ip_len;
 // frame check error
 logic mac_crc_err_v;
@@ -66,9 +67,15 @@ mac_rx #(
 	.cancel_o   (ip_cancel),
 	.valid_o    (ip_valid),
 	.data_o     (ip_data),
-	.len_o      (ip_len)
+	.keep_o     (ip_keep)
 );
-
+/* translate ip keep to ip len */
+thermo_to_len #(.KEEP_W(KEEP_W),.LEN_W(LEN_W)
+)m_thermo_to_len(
+	.keep_i(ip_keep),
+	.len_o(ip_len)
+);
+ 
 /* IPv4 */
 
 logic              t_cancel;

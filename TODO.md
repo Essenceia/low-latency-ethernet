@@ -1,6 +1,9 @@
 # TODO list
 
+- make rules for lint
 - lint
+- remove references of keep in favor of len
+- make rules for tb
 
 - Write C libs for tb, need to support :
     - crc generation and check
