@@ -178,7 +178,6 @@ tbs := crc mac
 define build_recipe
 $1_tb: $$($(1)_deps)
 	$$(call BUILD,$$^,$$@)
-
 endef
 
 # Dependencies for each testbench

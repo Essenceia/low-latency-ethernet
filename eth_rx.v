@@ -4,22 +4,32 @@ module eth_rx #(
 	/* configuration */
 	parameter VLAN_TAG = 1,
 	parameter UDP = 1, /* 1 : UDP, 0 : TCP */
-
+	
 	parameter DATA_W = 16,
 	parameter KEEP_W = DATA_W/8,
-	parameter LEN_W  = $clog2(KEEP_W),
+	parameter LEN_W  = $clog2(KEEP_W+1),
 	parameter LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1,
 	/* IP */
 	parameter IP_ADDR_W = 32,
-	parameter PROT_W = 8,/* Protocol */
+	parameter MATCH_IP_SRC_ADDR = 1, 
+	parameter MATCH_IP_DST_ADDR = 1, 
+	parameter [IP_ADDR_W-1:0] IP_SRC_ADDR = {8'd206, 8'd200, 8'd127, 8'd128},
+	parameter [IP_ADDR_W-1:0] IP_DST_ADDR = {8'd206, 8'd200, 8'd127, 8'd128},
+	/* Transport protocol */
+	parameter PROT_W = 8,
 	parameter [PROT_W-1:0] PROT_UDP = 8'd17,
 	parameter [PROT_W-1:0] PROT_TCP = 8'd6,
-	parameter [PROT_W-1:0] PROTOCOL = UDP ? PROT_UDP : PROT_TCP
+	parameter [PROT_W-1:0] PROTOCOL = UDP ? PROT_UDP : PROT_TCP,
+	/* Port */
+	parameter PORT_W   = 16,
+	parameter [PORT_W-1:0] SRC_PORT = 16'd18070,
+	parameter [PORT_W-1:0] DST_PORT = 16'd18070
 )(
 	input clk,
 	input nreset,
 
 	/* from physical layer */
+	input                   mac_cancel_i,
 	input                   mac_valid_i,
 	input [DATA_W-1:0]      mac_data_i,
 	input                   mac_ctrl_v_i,
@@ -33,17 +43,18 @@ module eth_rx #(
 	output                  app_cancel_o,
 	output [DATA_W-1:0]     app_data_o,
 	output [LEN_W-1:0]      app_len_o
-)
-
+);
 /* MAC */
-logic              mac_cancel;
 // mac -> ip
 logic              ip_valid;
+logic              ip_cancel;
 logic [DATA_W-1:0] ip_data;
 logic [KEEP_W-1:0] ip_keep;
 logic [LEN_W-1:0]  ip_len;
 // frame check error
+/* verilator lint_off UNUSEDSIGNAL */
 logic mac_crc_err_v;
+/* verilator lint_on UNUSEDSIGNAL */
 
 /* MAC */
 mac_rx #(
@@ -51,7 +62,7 @@ mac_rx #(
 	.VLAN_TAG(VLAN_TAG),
 	.DATA_W(DATA_W),
 	.KEEP_W(KEEP_W),
-	.LANE0_CNT_N(LANE0_CNT_N),
+	.LANE0_CNT_N(LANE0_CNT_N)
 )m_mac_rx(
 	.clk   (clk),
 	.nreset(nreset),
@@ -87,8 +98,11 @@ logic              ip_cs_err;
 ipv4_rx #(
 	.DATA_W(DATA_W),
 	.LEN_W(LEN_W),
-	.FRAG(FRAG),
 	.ADDR_W(IP_ADDR_W),
+	.MATCH_SRC_ADDR(MATCH_IP_SRC_ADDR),
+	.MATCH_DST_ADDR(MATCH_IP_DST_ADDR),
+	.SRC_ADDR(IP_SRC_ADDR),
+	.DST_ADDR(IP_DST_ADDR),
 	.PROT_W(PROT_W),
 	.PROTOCOL(PROTOCOL)
 )m_ipv4_rx(
@@ -117,9 +131,9 @@ udp_rx #(
 )m_udp_rx(
 	.clk   (clk),
 	.nreset(nreset),
-	.cancel_i   (t_cancel_i),
-	.valid_i    (t_valid_i),
-	.data_i     (t_data_i),
+	.cancel_i   (t_cancel),
+	.valid_i    (t_valid),
+	.data_i     (t_data),
 	.len_i      (t_len),
 	.ip_cs_err_i(ip_cs_err),
 	.valid_o    (app_valid_o),

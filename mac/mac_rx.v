@@ -40,8 +40,14 @@ localparam VLAN_N = ( VLAN_TAG )? 4 : 0;
 localparam HEAD_N = PRE_N + 2*ADDR_N + TYPE_N;
 localparam HEAD_VTAG_N = HEAD_N + VLAN_N;
 localparam CNT_W = $clog2(HEAD_VTAG_N); 
+
 /* header index */
-localparam TYPE_IDX = PRE_N + 2*ADDR_N - KEEP_W;
+localparam TYPE_IDX_TMP = PRE_N + 2*ADDR_N - KEEP_W;
+localparam TYPE_IDX_W   = $clog2(TYPE_IDX_TMP);
+/* verilator lint_off WIDTHTRUNC */
+localparam [TYPE_IDX_W-1:0] TYPE_IDX = TYPE_IDX_TMP;
+/* verilator lint_on WIDTHTRUNC */
+
 /* type : IPv4 */
 localparam [TYPE_W-1:0] IPV4 = 16'h0800; 
 /* vlan tag protocol identifier */
@@ -176,7 +182,7 @@ end else begin
 		
 		assign tpic_v = vlan_id == TPIC;
 		assign vlan_v = vlan_idx_v & tpic_v;
-		assign vlan_idx_v = cnt_q == TYPE_IDX;
+		assign vlan_idx_v = cnt_q[TYPE_IDX_W-1:0] == TYPE_IDX;
 		/* verilator lint_off WIDTHTRUNC */
 		assign vlan_id = data_i[TYPE_W-1:0];
 		/* verilator lint_on WIDTHTRUNC */
@@ -269,13 +275,17 @@ end else begin
 		logic head_data_shift2;
 		if (IS_10G) begin
 			if ( VLAN_TAG ) begin
+				/* verilator lint_off UNUSEDSIGNAL */
 				assign head_data_shift2 = cnt_q[2] ^ vlan_v;
+				/* verilator lint_on UNUSEDSIGNAL */
 			end else begin
 				assign head_data_shift2 = ~cnt_q[2];	
 			end
 		end else // !10G
 			if ( VLAN_TAG ) begin
+				/* verilator lint_off UNUSEDSIGNAL */
 				assign head_data_shift2 = ~vlan_v;
+				/* verilator lint_on UNUSEDSIGNAL */
 			end else begin // !VTAG
 				assign head_data_shift2 = 1'b1;
 			end
