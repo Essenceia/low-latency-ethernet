@@ -109,21 +109,7 @@ logic [TYPE_W-1:0] type_id;
 logic              type_v;// type index valid
 logic              type_err_v;// type content matches accepted packet expectations, eg : IPv4
 
-if (VLAN_TAG) begin
-	/* verilator lint_off UNDRIVEN */
-	/* verilator lint_off UNUSEDSIGNAL */
-	logic [TYPE_W-1:0] vlan_id;
-	logic              vlan_idx_v;
-	logic              vlan_v;
-	logic              tpic_v;
-	
-	assign tpic_v = vlan_id == TPIC;
-	assign vlan_v = vlan_idx_v & tpic_v;
-	/* verilator lint_on UNUSEDSIGNAL */
-	/* verilator lint_on UNDRIVEN */
-end
-
-if ((DATA_W == 64) && (IS_10G))begin
+if ((DATA_W == 64) & (IS_10G))begin
 	/* vlan tag and type index or type starts at 20 bytes, so the type field may
 	 * not fall on the first indexes of the data depending on if
 	 * start was received on the first or second lane0.
@@ -137,6 +123,13 @@ if ((DATA_W == 64) && (IS_10G))begin
 	assign lite_type_id[1] = data_i[4*8+TYPE_W-1:4*8];
 
 	if ( VLAN_TAG ) begin
+		logic [TYPE_W-1:0] vlan_id;
+		logic              vlan_idx_v;
+		logic              vlan_v;
+		logic              tpic_v;
+		
+		assign tpic_v = vlan_id == TPIC;
+		assign vlan_v = vlan_idx_v & tpic_v;
 		/* vlan and type may be received in the same packet
  		 * or in 2 consecutive packets */ 
 		assign vlan_idx_v = cnt_q[4] & ~cnt_q[3] & &(~cnt_q[1:0]); 
@@ -176,6 +169,13 @@ end else begin
 	/* verilator lint_on WIDTHTRUNC */
 
 	if ( VLAN_TAG) begin
+		logic [TYPE_W-1:0] vlan_id;
+		logic              vlan_idx_v;
+		logic              vlan_v;
+		logic              tpic_v;
+		
+		assign tpic_v = vlan_id == TPIC;
+		assign vlan_v = vlan_idx_v & tpic_v;
 		assign vlan_idx_v = cnt_q == TYPE_IDX;
 		/* verilator lint_off WIDTHTRUNC */
 		assign vlan_id = data_i[TYPE_W-1:0];
