@@ -33,7 +33,7 @@ module udp_rx #(
 );
 localparam CNT_W = 16;
 localparam HEAD_N = 8;
-localparam CNT_HEAD_W = $clog2(HEAD_N);
+localparam CNT_HEAD_W = $clog2(HEAD_N+1);
 /* fsm */
 reg   fsm_head_q;
 logic fsm_head_next;
@@ -69,11 +69,11 @@ end
 * +---------------- ...
 */
 /* udp length */
-logic udp_len_v;
+logic             udp_len_v;
 reg   [CNT_W-1:0] udp_len_q;
 logic [CNT_W-1:0] udp_len_next;
 
-assign udp_len_v = valid_i & fsm_head_q & ( cnt_q[CNT_HEAD_W-1:0] == d'3 );
+assign udp_len_v = valid_i & fsm_head_q & ( cnt_q[CNT_HEAD_W-1:0] == 'd3 );
 assign udp_len_next = udp_len_v ? data_i : udp_len_q;
 
 always @(posedge clk) begin
@@ -92,10 +92,10 @@ logic              src_port_cnt_v;
 logic [PORT_W-1:0] src_port;
 logic              dst_port_cnt_v;
 logic [PORT_W-1:0] dst_port;
-assign src_port_v = ( cnt_q[CNT_HEAD_W-1:0] == 'd0 ) & fsm_idle_q;
-assign src_port   = data_i;
-assign dst_port_v = ( cnt_q[CNT_HEAD_W-1:0] == 'd2 ) & fsm_head_q;
-assign dst_port   = data_i;
+assign src_port_cnt_v = ( cnt_q[CNT_HEAD_W-1:0] == 'd0 ) & fsm_idle_q;
+assign src_port       = data_i;
+assign dst_port_cnt_v = ( cnt_q[CNT_HEAD_W-1:0] == 'd2 ) & fsm_head_q;
+assign dst_port       = data_i;
 
 /* discard signals */ 
 logic dcd_v;
@@ -111,20 +111,20 @@ reg   bypass_v_q;
 logic bypass_v_next;
 logic bypass_rst;
 
-assign bypass_rst = cnt_rst;
-assign bypass_next = bypass_rst ? 1'b0 : bypass_v_q | dcd_v;
+assign bypass_rst  = cnt_rst;
+assign bypass_v_next = bypass_rst ? 1'b0 : bypass_v_q | dcd_v;
 always @(posedge clk) begin
-	bypass_v_q <= bypass_next;
+	bypass_v_q <= bypass_v_next;
 end
 
 
 // FSM
 assign fsm_idle_next  = cancel_i
-					  | fsm_idle_q & ~valid
+					  | fsm_idle_q & ~valid_i
 					  | fsm_data_q & end_data_v; 
 assign fsm_head_next  = ~cancel_i & 
 					  ( fsm_idle_q & valid_i
-					  | fsm_head_q & ~end_head_v;
+					  | fsm_head_q & ~end_head_v);
 assign fsm_data_next = ~cancel_i & 
 					 ( fsm_head_q & end_head_v 
 					 | fsm_data_q & ~end_data_v );
@@ -141,10 +141,10 @@ always @(posedge clk) begin
 end
 
 // output
-assign valid_o = fsm_data_q & valid_i & ~bypass_v_q;
-assign data_o  = data_i;
-assign len_o   = len_i;
-
+assign valid_o  = fsm_data_q & valid_i & ~bypass_v_q;
+assign data_o   = data_i;
+assign len_o    = len_i;
+assign cancel_o = 1'bx; // TODO 
 `ifdef FORMAL
 initial begin
 	a_reset : assume ( ~nreset );

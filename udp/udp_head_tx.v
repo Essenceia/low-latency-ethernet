@@ -12,8 +12,10 @@ module udp_head_tx #(
 )(
 	/* data length */
 	input [LEN_W-1:0] len_i,
+	/* verilator lint_off UNUSEDSIGNAL*/
 	input [CRC_W-1:0] crc_i,
-
+	/* verilator lint_on UNUSEDSIGNAL*/
+	
 	output [HEAD_W-1:0] head_o
 );
 localparam [LEN_W-1:0] HEAD_N = HEAD_W/8;
