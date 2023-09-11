@@ -89,7 +89,11 @@ Under developpement :
 
 - [x] MAC 10G 16b/32b/64b wide data path
 
-- [ ] IPv4
+- [x] IPv4 16b
+
+- [ ] IPv4 64b
+
+- [x] UDP 16b
 
 - [ ] UDP
 
