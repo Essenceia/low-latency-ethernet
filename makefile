@@ -139,7 +139,7 @@ UDP_DIR = udp
 UTILS_DIR = ../utils
 
 crc_f := crc32.v
-mac_f :=crc.v mac_rx.v $(crc_deps)
+mac_f :=crc.v mac_rx.v mac_head_tx.v $(crc_deps)
 ip_f := ipv4_rx.v ipv4_head_tx.v ip_addr_match.v
 udp_f := udp_head_tx.v udp_rx.v 
 utils_f := thermo_to_len.v
@@ -150,7 +150,7 @@ ip_deps := $(foreach x,$(ip_f),$(IP_DIR)/$x)
 udp_deps := $(foreach x,$(udp_f),$(UDP_DIR)/$x) 
 utils_deps := $(foreach x,$(utils_f),$(UTILS_DIR)/$x)
 
-top_deps := eth_rx.v $(mac_deps) $(ip_deps) $(udp_deps) $(utils_deps)
+top_deps := eth_rx.v eth_tx.v $(mac_deps) $(ip_deps) $(udp_deps) $(utils_deps)
 
 lint_mac: $(mac_deps)
 	$(call LINT,$^,mac_rx)

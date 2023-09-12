@@ -17,12 +17,12 @@ module mac_head_tx #(
 	parameter PRE_N  = 8,
 	parameter PRE_W  = PRE_N*8,
 	parameter ADDR_N = 6,
-	parameter ADDR_W = ADR_N*8,
+	parameter ADDR_W = ADDR_N*8,
 	parameter TYPE_N = 2,
 	parameter TYPE_W = TYPE_N*8,
 	parameter VLAN_N = ( VLAN_TAG )? 4 : 0,
 	parameter VLAN_W = VLAN_N*8,
-	parameter HEAD_LITE_N = PRE_N + 2*ADR_N,
+	parameter HEAD_LITE_N = PRE_N + 2*ADDR_N,
 	parameter HEAD_N = HEAD_LITE_N + VLAN_N +TYPE_N,
 	parameter HEAD_W = HEAD_N*8,
 
@@ -31,11 +31,11 @@ module mac_head_tx #(
 	parameter [ADDR_W-1:0] DST_ADDR = {24'h0 ,24'hFCD4F2} 
 )(
 	output [HEAD_W-1:0] head_o
-)
+);
 localparam LSB_W = HEAD_LITE_N*8;
-localparam MSB_W = (VLAN_N)*8;
+localparam MSB_W = (VLAN_N)*8 + TYPE_W;
 
-localparam PRE = {56'hAAAAAAAAAAAAAA, 8'hAB}; 
+localparam [PRE_W-1:0] PRE = {56'hAAAAAAAAAAAAAA, 8'hAB}; 
 /* type : IPv4 */
 localparam IPV4 = 16'h0800; 
 /* vtag
