@@ -150,7 +150,7 @@ ip_deps := $(foreach x,$(ip_f),$(IP_DIR)/$x)
 udp_deps := $(foreach x,$(udp_f),$(UDP_DIR)/$x) 
 utils_deps := $(foreach x,$(utils_f),$(UTILS_DIR)/$x)
 
-top_deps := eth_rx.v eth_tx.v $(mac_deps) $(ip_deps) $(udp_deps) $(utils_deps)
+eth_deps := eth_rx.v eth_tx.v $(mac_deps) $(ip_deps) $(udp_deps) $(utils_deps)
 
 lint_mac: $(mac_deps)
 	$(call LINT,$^,mac_rx)
@@ -164,7 +164,7 @@ lint_ip: $(ip_deps)
 lint_udp: $(udp_deps)
 	$(call LINT,$^,udp_rx)
 
-lint_top: $(top_deps)
+lint_eth: $(eth_deps)
 	$(call LINT,$^,eth_rx)
  
 #############
@@ -172,18 +172,20 @@ lint_top: $(top_deps)
 #############
 
 # The list of testbenches.
-tbs := crc mac
+tbs := crc mac eth
+
+# Dependencies for each testbench
+crc_deps :=crc32.v crc32_v2.v $(REF_DIR)/lfsr.v $(TB_DIR)/crc_tb.sv
+mac_deps +=crc.v mac_rx.v $(TB_DIR)/mac_tb.sv
+eth_deps += $(TB_DIR)/eth_tb.sv 
+
 
 # Standard run recipe to build a given testbench
 define build_recipe
 $1_tb: $$($(1)_deps)
 	$$(call BUILD,$$^,$$@)
+
 endef
-
-# Dependencies for each testbench
-crc_deps :=crc32.v crc32_v2.v $(REF_DIR)/lfsr.v $(TB_DIR)/crc_tb.sv
-mac_deps +=crc.v mac_rx.v $(TB_DIR)/mac_tb.sv
-
 
 # Standard run recipe to run a given testbench
 define run_recipe
