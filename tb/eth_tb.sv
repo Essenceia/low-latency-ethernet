@@ -41,6 +41,16 @@ logic [UDP_CS_W-1:0]   app_cs_i;
 
 always clk = #5 ~clk;
 
+task set_rx_idle();
+	mac_valid_i = 1'b1;
+	mac_cancel_i = 1'b0;
+	mac_data_i = {DATA_W{1'bx}};
+	mac_ctrl_v_i = 1'b0;
+	mac_idle_i = 1'b1;	
+	mac_start_i = {LANE0_CNT_N{1'b0}};
+	mac_term_i = 1'b0;
+	mac_term_keep_i = {KEEP_W{1'b0}};	
+endtask
 
 initial begin
 	$dumpfile("wave/eth_tb.vcd");
@@ -50,9 +60,10 @@ initial begin
 	nreset = 1'b1;
 	mac_cancel_i = 1'b0;
 	mac_valid_i = 1'b0;
-	/* Test 1 */
 	/* generated tx header */
 	app_pkt_len_i = 50;
+	#10
+	set_rx_idle();
 	#100
 	
 	$display("Test finised");

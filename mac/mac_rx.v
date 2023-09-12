@@ -297,17 +297,23 @@ end else begin
 								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}}};
 		assign head_data_keep = {2'b0, {4{~head_data_shift2}}, 2'b11};  
 end
+
+/* term */
+logic term_v;
+assign term_v   = valid_i & term_lite_v;
  
 /* crc */
 // TODO 
 logic             crc_start_v;
+logic             crc_zero;
 logic             crc_err_v;
 logic [CRC_W-1:0]  crc;
 
 /* crc starts after preamble */
 assign crc_start_v = cnt_q == 8;
 /* crc test at the end of the packet */
-assign crc_err_v = crc == {CRC_W{1'b0}};
+assign crc_zero = ~|crc;
+assign crc_err_v = crc_zero & term_v; 
 
 crc #(.DATA_W(DATA_W), .CRC_W(CRC_W))
 m_crc(
@@ -319,8 +325,6 @@ m_crc(
 );
 /* fsm */
 logic signal_v;
-logic term_v;
-assign term_v   = valid_i & term_lite_v;
 assign signal_v = valid_i & ~cancel_i;
 
 assign fsm_invalid_next = cancel_i
@@ -346,6 +350,8 @@ always @(posedge clk) begin
 end
 
 /* output */
-assign cancel_o = ~fsm_invalid_q & cancel_i;
+/* No need to filter out cancel as the sublayer will only
+ * be valid if mac is sending data ( fsm_data_q ) */
+assign cancel_o = cancel_i;
 assign crc_err_o = crc_err_v;
 endmodule
