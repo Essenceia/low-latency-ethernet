@@ -69,6 +69,8 @@ module eth_tx #(
 localparam T_HEAD_W = UDP ? UDP_HEAD_W : TCP_HEAD_W;
 /* full eth head */
 localparam HEAD_W = T_HEAD_W + IP_HEAD_W + MAC_HEAD_W; 
+/* upd lenght for calculating IP data length */
+localparam [PKT_LEN_W-1:0] IP_LEN_ADD = UDP_HEAD_N;
 
 /* Transport layer UDP/TCP */
 logic [T_HEAD_W-1:0] t_head;
@@ -93,9 +95,8 @@ end
 logic [IP_HEAD_W-1:0] ip_head;
 logic [PKT_LEN_W-1:0] ip_data_len;
 logic                 unused_ip_data_len_of;
-/* verilator lint_off WIDTHEXPAND */
-assign { unused_ip_data_len_of, ip_data_len } = app_len_i + UDP_HEAD_N;
-/* verilator lint_on WIDTHEXPAND */
+
+assign { unused_ip_data_len_of, ip_data_len } = app_pkt_len_i + IP_LEN_ADD;
 
 ipv4_head_tx #(
 	.LEN_W(PKT_LEN_W),
@@ -124,7 +125,7 @@ mac_head_tx #(
 /* total head */
 /* verilator lint_off UNUSEDSIGNAL*/
 logic [HEAD_W-1:0] head; 
-/* verilator lint_on UNUSEDSIGNAL*/
+/* verilator lint_off UNUSEDSIGNAL*/
 assign head = {mac_head, ip_head, t_head};
 
 
