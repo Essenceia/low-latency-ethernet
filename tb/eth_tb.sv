@@ -52,6 +52,30 @@ task set_rx_idle();
 	mac_term_keep_i = {KEEP_W{1'b0}};	
 endtask
 
+task send_simple_tx_data(int l);
+	app_valid_i = 1'b0;	
+	app_pkt_len_i = l;
+	for(int i=0; i<l/KEEP_W; i++)begin
+		#10
+		app_valid_i = 1'b1;
+		app_data_i = $random;
+		app_len_i = {KEEP_W{1'b1}};	
+	end
+	#10
+	app_valid_i = 1'b0;
+	app_len_i = {KEEP_W{1'b0}};	
+	app_data_i = {DATA_W{1'bx}};
+	
+	for(int i=0; i < l%KEEP_W; i++)begin
+		$display("i %d l %d",i,l);
+		app_valid_i = 1'b1;
+		app_len_i[i] = 1'b1;
+		app_data_i[i*8+:8] = $random;
+	end
+	#10
+	app_valid_i = 1'b0;
+endtask
+
 initial begin
 	$dumpfile("wave/eth_tb.vcd");
 	$dumpvars(0, eth_tb);
@@ -64,6 +88,7 @@ initial begin
 	app_pkt_len_i = 50;
 	#10
 	set_rx_idle();
+	send_simple_tx_data(19);
 	#100
 	
 	$display("Test finised");

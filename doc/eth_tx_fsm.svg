@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="488" height="768" class="svgbob"><style>.svgbob line, .svgbob path, .svgbob circle, .svgbob rect, .svgbob polygon {
+    stroke: black;
+    stroke-width: 2;
+    stroke-opacity: 1;
+    fill-opacity: 1;
+    stroke-linecap: round;
+    stroke-linejoin: miter;
+}
+.svgbob text {
+    white-space: pre;
+    fill: black;
+    font-family: Iosevka Fixed, monospace;
+    font-size: 14px;
+}
+.svgbob rect.backdrop {
+    stroke: none;
+    fill: white;
+}
+.svgbob .broken {
+    stroke-dasharray: 8;
+}
+.svgbob .filled {
+    fill: black;
+}
+.svgbob .bg_filled {
+    fill: white;
+    stroke-width: 1;
+}
+.svgbob .nofill {
+    fill: white;
+}
+.svgbob .end_marked_arrow {
+    marker-end: url(#arrow);
+}
+.svgbob .start_marked_arrow {
+    marker-start: url(#arrow);
+}
+.svgbob .end_marked_diamond {
+    marker-end: url(#diamond);
+}
+.svgbob .start_marked_diamond {
+    marker-start: url(#diamond);
+}
+.svgbob .end_marked_circle {
+    marker-end: url(#circle);
+}
+.svgbob .start_marked_circle {
+    marker-start: url(#circle);
+}
+.svgbob .end_marked_open_circle {
+    marker-end: url(#open_circle);
+}
+.svgbob .start_marked_open_circle {
+    marker-start: url(#open_circle);
+}
+.svgbob .end_marked_big_open_circle {
+    marker-end: url(#big_open_circle);
+}
+.svgbob .start_marked_big_open_circle {
+    marker-start: url(#big_open_circle);
+}<!--separator--></style><defs><marker id="arrow" viewBox="-2 -2 8 8" refX="4" refY="2" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><polygon points="0,0 0,4 4,2 0,0"></polygon></marker><marker id="diamond" viewBox="-2 -2 8 8" refX="4" refY="2" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><polygon points="0,2 2,0 4,2 2,4 0,2"></polygon></marker><marker id="circle" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><circle cx="4" cy="4" r="2" class="filled"></circle></marker><marker id="open_circle" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><circle cx="4" cy="4" r="2" class="bg_filled"></circle></marker><marker id="big_open_circle" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><circle cx="4" cy="4" r="3" class="bg_filled"></circle></marker></defs><rect class="backdrop" x="0" y="0" width="488" height="768"></rect><text x="194" y="12" >Application</text><text x="218" y="348" >Eth</text><polygon points="376,388 368,392 376,396" class="filled"></polygon><polygon points="136,580 144,584 136,588" class="filled"></polygon><polygon points="192,660 200,664 192,668" class="filled"></polygon><text x="122" y="44" >new</text><text x="154" y="44" >application</text><text x="250" y="44" >data</text><text x="290" y="44" >to</text><text x="314" y="44" >send</text><text x="82" y="60" >application</text><text x="178" y="60" >layer</text><text x="226" y="60" >send</text><text x="266" y="60" >to</text><text x="290" y="60" >ethernet</text><text x="362" y="60" >tx</text><text x="386" y="60" >:</text><text x="106" y="76" >`early</text><text x="162" y="76" >valid`</text><text x="218" y="76" >+</text><text x="242" y="76" >packet</text><text x="298" y="76" >data</text><text x="338" y="76" >length</text><line x1="244" y1="80" x2="244" y2="116" class="solid"></line><polygon points="240,116 248,116 244,128" class="filled"></polygon><text x="226" y="140" >for</text><line x1="244" y1="144" x2="244" y2="180" class="solid"></line><polygon points="240,180 248,180 244,192" class="filled"></polygon><text x="202" y="204" >stream</text><line x1="244" y1="208" x2="244" y2="244" class="solid"></line><polygon points="240,244 248,244 244,256" class="filled"></polygon><text x="234" y="268" >block</text><text x="186" y="140" >wait</text><text x="258" y="140" >ready</text><polygon points="304,132 296,136 304,140" class="filled"></polygon><text x="258" y="204" >data</text><polygon points="296,196 288,200 296,204" class="filled"></polygon><text x="154" y="268" >send</text><text x="194" y="268" >last</text><text x="282" y="268" >indicator</text><text x="250" y="348" >TX</text><text x="162" y="396" >create</text><text x="218" y="396" >new</text><text x="250" y="396" >network</text><line x1="244" y1="400" x2="244" y2="436" class="solid"></line><polygon points="240,436 248,436 244,448" class="filled"></polygon><text x="242" y="460" >header</text><line x1="244" y1="464" x2="244" y2="500" class="solid"></line><polygon points="240,500 248,500 244,512" class="filled"></polygon><text x="194" y="524" >finished</text><line x1="244" y1="528" x2="244" y2="564" class="solid"></line><polygon points="240,564 248,564 244,576" class="filled"></polygon><text x="154" y="588" >start</text><text x="202" y="588" >streaming</text><text x="282" y="588" >packet</text><text x="154" y="604" >data</text><text x="194" y="604" >to</text><text x="218" y="604" >physical</text><text x="290" y="604" >layer</text><line x1="244" y1="608" x2="244" y2="644" class="solid"></line><polygon points="240,644 248,644 244,656" class="filled"></polygon><text x="210" y="668" >append</text><line x1="244" y1="672" x2="244" y2="692" class="solid"></line><polygon points="240,692 248,692 244,704" class="filled"></polygon><text x="242" y="716" >and</text><text x="314" y="396" >header</text><text x="114" y="460" >start</text><text x="162" y="460" >streaming</text><text x="298" y="460" >to</text><text x="322" y="460" >mac</text><polygon points="352,452 344,456 352,460" class="filled"></polygon><text x="138" y="524" >header</text><text x="266" y="524" >sent</text><text x="306" y="524" >ready</text><text x="378" y="540" >calculate</text><text x="402" y="556" >crc</text><polygon points="304,660 296,664 304,668" class="filled"></polygon><text x="266" y="668" >crc</text><text x="130" y="716" >pcs</text><text x="162" y="716" >send</text><text x="202" y="716" >term</text><text x="274" y="716" >term</text><text x="314" y="716" >keep</text><g><line x1="60" y1="8" x2="184" y2="8" class="solid"></line><line x1="60" y1="8" x2="60" y2="296" class="solid"></line><line x1="280" y1="8" x2="412" y2="8" class="solid"></line><line x1="412" y1="8" x2="412" y2="296" class="solid"></line><line x1="60" y1="296" x2="412" y2="296" class="solid"></line></g><g><line x1="400" y1="56" x2="476" y2="56" class="solid"></line><line x1="476" y1="56" x2="476" y2="392" class="solid"></line><line x1="376" y1="392" x2="476" y2="392" class="solid"></line></g><g><line x1="4" y1="200" x2="192" y2="200" class="solid"></line><line x1="4" y1="200" x2="4" y2="584" class="solid"></line><line x1="4" y1="584" x2="136" y2="584" class="solid"></line></g><g><line x1="36" y1="264" x2="144" y2="264" class="solid"></line><line x1="36" y1="264" x2="36" y2="576" class="solid"></line><path d="M 36,576 A 12,12 0,0,0 36,592" class="nofill"></path><line x1="36" y1="592" x2="36" y2="664" class="solid"></line><line x1="36" y1="664" x2="192" y2="664" class="solid"></line></g><g><line x1="92" y1="344" x2="216" y2="344" class="solid"></line><line x1="92" y1="344" x2="92" y2="744" class="solid"></line><line x1="272" y1="344" x2="460" y2="344" class="solid"></line><line x1="460" y1="344" x2="460" y2="744" class="solid"></line><line x1="92" y1="744" x2="460" y2="744" class="solid"></line></g><g><line x1="304" y1="136" x2="312" y2="136" class="solid"></line><path d="M 312,136 A 8,8 0,0,1 318,140" class="nofill"></path><line x1="318" y1="140" x2="320" y2="144" class="solid"></line><path d="M 320,144 A 16,16 0,0,1 320,160" class="nofill"></path><line x1="320" y1="160" x2="318" y2="164" class="solid"></line><path d="M 288,144 A 16,16 0,0,0 288,160" class="nofill"></path><line x1="288" y1="160" x2="290" y2="164" class="solid"></line><path d="M 290,164 A 8,8 0,0,0 296,168" class="nofill"></path><line x1="296" y1="168" x2="312" y2="168" class="solid"></line><path d="M 318,164 A 8,8 0,0,1 312,168" class="nofill"></path></g><g><line x1="296" y1="200" x2="304" y2="200" class="solid"></line><path d="M 304,200 A 8,8 0,0,1 310,204" class="nofill"></path><line x1="310" y1="204" x2="312" y2="208" class="solid"></line><path d="M 312,208 A 16,16 0,0,1 312,224" class="nofill"></path><line x1="312" y1="224" x2="310" y2="228" class="solid"></line><path d="M 280,208 A 16,16 0,0,0 280,224" class="nofill"></path><line x1="280" y1="224" x2="282" y2="228" class="solid"></line><path d="M 282,228 A 8,8 0,0,0 288,232" class="nofill"></path><line x1="288" y1="232" x2="304" y2="232" class="solid"></line><path d="M 310,228 A 8,8 0,0,1 304,232" class="nofill"></path></g><g><line x1="352" y1="456" x2="360" y2="456" class="solid"></line><path d="M 360,456 A 8,8 0,0,1 366,460" class="nofill"></path><line x1="366" y1="460" x2="368" y2="464" class="solid"></line><path d="M 368,464 A 16,16 0,0,1 368,480" class="nofill"></path><line x1="368" y1="480" x2="366" y2="484" class="solid"></line><path d="M 336,464 A 16,16 0,0,0 336,480" class="nofill"></path><line x1="336" y1="480" x2="338" y2="484" class="solid"></line><path d="M 338,484 A 8,8 0,0,0 344,488" class="nofill"></path><line x1="344" y1="488" x2="360" y2="488" class="solid"></line><path d="M 366,484 A 8,8 0,0,1 360,488" class="nofill"></path></g><g><line x1="420" y1="560" x2="420" y2="664" class="solid"></line><line x1="304" y1="664" x2="420" y2="664" class="solid"></line></g></svg>

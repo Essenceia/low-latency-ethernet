@@ -4,6 +4,7 @@ module eth_tx #(
 	parameter UDP_CS = 0,
 	parameter VLAN_TAG = 1,
 	parameter UDP = 1,
+	parameter IS_10G = 1,
 
 	parameter DATA_W = 16,
 	parameter KEEP_W = DATA_W/8,
@@ -42,35 +43,68 @@ module eth_tx #(
 	
 	parameter [MAC_ADDR_W-1:0] MAC_SRC_ADDR = {24'h0 ,24'hF82F08},
 	parameter [MAC_ADDR_W-1:0] MAC_DST_ADDR = {24'h0 ,24'hFCD4F2},
+
+	parameter LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1,
 	
 	parameter TCP_HEAD_N = 20,
 	parameter TCP_HEAD_W = TCP_HEAD_N*8,
 	parameter UDP_HEAD_N = 8, 
 	parameter UDP_HEAD_W = UDP_HEAD_N*8
 )(
-	/* verilator lint_off UNUSEDSIGNAL*/
 	input clk,
 	input nreset,
 
 	/* from application */
-	input                  app_valid_i,
-	input [DATA_W-1:0]     app_data_i,
-	input [LEN_W-1:0]      app_len_i,
+	input                  app_cancel_i,
+	input                  app_early_v_i,
 	/* full packet udp data len */
 	input [PKT_LEN_W-1:0]  app_pkt_len_i,
-	/* packet data checksum */
-	input [UDP_CS_W-1:0]   app_cs_i
-	
-	/* pma */ 
+	output                 app_ready_v_o,
+
+	/* data steaming */
+	input                  app_valid_i,
+	input [DATA_W-1:0]     app_data_i,
+	/* verilator lint_off UNUSEDSIGNAL*/
+	input [LEN_W-1:0]      app_len_i,
+	/* packet data checksum used only if USP_CS = 1 */
+	input [UDP_CS_W-1:0]   app_cs_i,
 	/* verilator lint_on UNUSEDSIGNAL*/
 	
+	/* pma */ 
+	output                   mac_ready_i,
+
+	output                   mac_ctrl_v_o,
+	output [DATA_W-1:0]      mac_data_o,	
+	output [LANE0_CNT_N-1:0] mac_start_v_o,
+	output                   mac_idle_v_o,
+	output                   mac_term_v_o,
+	output [KEEP_W-1:0]      mac_term_keep_o
 );
 /* transport layer header */
-localparam T_HEAD_W = UDP ? UDP_HEAD_W : TCP_HEAD_W;
+localparam T_HEAD_N = UDP ? UDP_HEAD_N : TCP_HEAD_N;
+localparam T_HEAD_W = T_HEAD_N*8; 
 /* full eth head */
-localparam HEAD_W = T_HEAD_W + IP_HEAD_W + MAC_HEAD_W; 
+localparam HEAD_N = T_HEAD_N + IP_HEAD_N + MAC_HEAD_N; 
+localparam HEAD_W = HEAD_N*8;
+
+/* head counter */
+localparam HEAD_CNT_W = $clog2(HEAD_N+1); 
+
 /* upd lenght for calculating IP data length */
 localparam [PKT_LEN_W-1:0] IP_LEN_ADD = UDP_HEAD_N;
+
+/* fsm */
+reg   fsm_idle_q;
+logic fsm_idle_next;
+reg   fsm_head_q;
+logic fsm_head_next;
+reg   fsm_data_q;
+logic fsm_data_next;
+reg   fsm_foot_q;
+logic fsm_foot_next;
+
+
+/* Generate Header */
 
 /* Transport layer UDP/TCP */
 logic [T_HEAD_W-1:0] t_head;
@@ -123,10 +157,96 @@ mac_head_tx #(
 );
 
 /* total head */
-/* verilator lint_off UNUSEDSIGNAL*/
-logic [HEAD_W-1:0] head; 
-/* verilator lint_off UNUSEDSIGNAL*/
-assign head = {mac_head, ip_head, t_head};
+logic [HEAD_W-1:0] head_init; 
+logic [HEAD_W-1:0] head_next; 
+reg   [HEAD_W-1:0] head_q; 
+logic              head_rst;
+ 
+assign head_init = {mac_head, ip_head, t_head};
+/* shift right */
+assign head_rst = fsm_idle_q & ~app_early_v_i;
+assign head_next = head_rst ? head_init : {{KEEP_W*8{1'bx}}, head_q[HEAD_W-KEEP_W-1:0]};
+always @(posedge clk) begin
+		head_q <= head_next;
+end
 
+/* stream head */
+reg   [HEAD_CNT_W-1:0] head_cnt_q;
+logic [HEAD_CNT_W-1:0] head_cnt_next;
+logic [HEAD_CNT_W-1:0] head_cnt_add;
+logic                  head_cnt_zero;
+logic                  head_cnt_en;
+logic                  unused_head_cnt_add;
+logic                  head_cnt_rst;
 
+assign {unused_head_cnt_add, head_cnt_add} = head_cnt_q + KEEP_W;
+
+assign head_cnt_en = mac_ready_i & ( fsm_head_q | ( fsm_idle_q & app_early_v_i ));
+assign head_cnt_rst = fsm_idle_q & ~app_early_v_i;
+assign head_cnt_next = head_cnt_rst ? {HEAD_CNT_W{1'b0}}: head_cnt_add;
+assign head_cnt_zero = ~|head_cnt_q;
+
+always @(posedge clk) begin
+	if (head_cnt_en) begin
+		head_cnt_q <= head_cnt_next;
+	end
+end
+
+/* Sections end */
+logic end_head_v;
+logic end_data_v;
+logic end_foot_v;
+
+assign end_head_v = head_cnt_q >= HEAD_N;
+assign end_data_v = 1'b0; // TODO
+assign end_foot_v = 1'b0; // TODO
+
+/* data */
+logic data_v;
+logic data_ctrl;
+logic data_term;
+logic [KEEP_W-1:0] data_term_keep; 
+logic [LANE0_CNT_N-1:0] data_start;
+
+assign data_v = fsm_head_q | fsm_data_q | fsm_foot_q;
+assign data_ctrl = head_cnt_zero; //TODO include term
+assign data_start = {{LANE0_CNT_N-1{1'b0}}, head_cnt_zero & fsm_head_q};
+assign data_term  = 1'bx; //TODO
+assign data_term_keep = {KEEP_W{1'bx}}; //TODO
+ 
+ 
+/* FSM */
+
+assign fsm_idle_next = app_cancel_i
+				     | fsm_idle_q & ~app_early_v_i
+					 | fsm_foot_q & end_foot_v;
+assign fsm_head_next = ~app_cancel_i 
+					 &(fsm_idle_q & app_early_v_i
+					 | fsm_head_q & ~end_head_v );
+assign fsm_data_next = ~app_cancel_i
+					 &(fsm_head_q & end_head_v
+					 | fsm_data_q & ~end_data_v);
+assign fsm_foot_next = ~app_cancel_i
+					 &( fsm_data_q & end_data_v
+					 |  fsm_foot_q & ~end_foot_v);
+always @(posedge clk) begin
+	if( ~nreset) begin
+		fsm_idle_q <= 1'b1;
+		fsm_head_q <= 1'b0;
+		fsm_data_q <= 1'b0;
+		fsm_foot_q <= 1'b0;
+	end else begin
+		fsm_idle_q <= fsm_idle_next;
+		fsm_head_q <= fsm_head_next;
+		fsm_data_q <= fsm_data_next;
+		fsm_foot_q <= fsm_foot_next;
+	end
+end 
+
+/* output */
+assign mac_ctrl_v_o = data_ctrl; 
+assign mac_idle_v_o = ~data_v;
+assign mac_start_v_o = data_start;
+assign mac_term_v_o = data_term;
+assign mac_term_keep_o = data_term_keep; 
 endmodule
