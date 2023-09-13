@@ -20,8 +20,6 @@ module mac_rx #(
 	input [KEEP_W-1:0]      term_keep_i,
 
 	// to IP layer
-	// propagate cancel with added conditions
-	output              cancel_o,
 	// data
 	output              valid_o,
 	output [DATA_W-1:0] data_o,
@@ -311,7 +309,9 @@ logic [CRC_W-1:0]  crc;
 
 /* crc starts after preamble */
 assign crc_start_v = cnt_q == 8;
-/* crc test at the end of the packet */
+/* crc test at the end of the packet 
+ * TODO: handle when data does not end
+ * on payload boundary */
 assign crc_zero = ~|crc;
 assign crc_err_v = crc_zero & term_v; 
 
@@ -350,8 +350,5 @@ always @(posedge clk) begin
 end
 
 /* output */
-/* No need to filter out cancel as the sublayer will only
- * be valid if mac is sending data ( fsm_data_q ) */
-assign cancel_o = cancel_i;
 assign crc_err_o = crc_err_v;
 endmodule

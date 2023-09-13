@@ -47,7 +47,6 @@ module eth_rx #(
 /* MAC */
 // mac -> ip
 logic              ip_valid;
-logic              ip_cancel;
 logic [DATA_W-1:0] ip_data;
 logic [KEEP_W-1:0] ip_keep;
 logic [LEN_W-1:0]  ip_len;
@@ -75,7 +74,6 @@ mac_rx #(
 	.term_i     (mac_term_i),
 	.term_keep_i(mac_term_keep_i),
 	.crc_err_o  (mac_crc_err_v),
-	.cancel_o   (ip_cancel),
 	.valid_o    (ip_valid),
 	.data_o     (ip_data),
 	.keep_o     (ip_keep)
@@ -89,7 +87,6 @@ thermo_to_len #(.KEEP_W(KEEP_W),.LEN_W(LEN_W)
  
 /* IPv4 */
 
-logic              t_cancel;
 logic              t_valid;
 logic [DATA_W-1:0] t_data;
 logic [LEN_W-1:0]  t_len;
@@ -108,19 +105,18 @@ ipv4_rx #(
 )m_ipv4_rx(
 	.clk   (clk),
 	.nreset(nreset),
-	.cancel_i(ip_cancel),
+	.cancel_i(mac_cancel_i),
 	.valid_i (ip_valid),
 	.data_i  (ip_data),
 	.len_i   (ip_len),
 	.cs_err_o(ip_cs_err),
 	.valid_o (t_valid),
-	.cancel_o(t_cancel),
 	.data_o  (t_data),
 	.len_o   (t_len)
 );
 
 /* Transport */
-if ( UDP ) begin
+if ( UDP ) begin : transport_layer
 /* UDP */
 udp_rx #(
 	.DATA_W(DATA_W),
@@ -131,18 +127,19 @@ udp_rx #(
 )m_udp_rx(
 	.clk   (clk),
 	.nreset(nreset),
-	.cancel_i   (t_cancel),
+	.cancel_i   (mac_cancel_i),
 	.valid_i    (t_valid),
 	.data_i     (t_data),
 	.len_i      (t_len),
 	.ip_cs_err_i(ip_cs_err),
 	.valid_o    (app_valid_o),
 	.data_o     (app_data_o), 
-	.len_o      (app_len_o),
-	.cancel_o   (app_cancel_o)	
+	.len_o      (app_len_o)
 );
+	assign app_cancel_o = mac_cancel_i;
 end else begin
 /* TCP */
 /* TODO */
 end
+
 endmodule

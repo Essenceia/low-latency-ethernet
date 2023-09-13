@@ -39,7 +39,6 @@ module ipv4_rx #(
 
 	/* Transport */
 	output              valid_o,
-	output              cancel_o,
 	output [DATA_W-1:0] data_o,
 	output [LEN_W-1:0]  len_o
 );
@@ -275,6 +274,7 @@ assign end_data_v = cnt_add >= tot_len_q;
  
 /* fsm */
 assign fsm_idle_next = cancel_i 
+					 | fsm_idle_q & ~valid_i
 					 | fsm_data_q & end_data_v;
 assign fsm_head_next = fsm_idle_q & valid_i
 					 | fsm_head_q & ~end_head_v;
@@ -298,7 +298,6 @@ end
 assign valid_o = valid_i & fsm_data_q &  ~bypass_v_q;
 assign data_o  = data_i;
 assign len_o   = len_i;
-assign cancel_o = 1'bx; // TODO
 /* cs error will be transmitied in the first cycle of valid data
  * for transport layer */
 assign cs_err_o = cs_err_v; 
