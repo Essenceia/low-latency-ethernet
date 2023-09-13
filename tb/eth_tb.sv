@@ -33,12 +33,16 @@ logic                  app_cancel_o;
 logic [DATA_W-1:0]     app_data_o;
 logic [LEN_W-1:0]      app_len_o;
 /* tx */
+logic                  app_early_v_i;
+logic                  app_ready_v_o;
+logic                  app_cancel_i;
 logic                  app_valid_i;
 logic [DATA_W-1:0]     app_data_i;
 logic [LEN_W-1:0]      app_len_i;
 logic [PKT_LEN_W-1:0]  app_pkt_len_i;
 logic [UDP_CS_W-1:0]   app_cs_i;
 
+logic                  mac_ready_i;
 always clk = #5 ~clk;
 
 task set_rx_idle();
@@ -52,16 +56,29 @@ task set_rx_idle();
 	mac_term_keep_i = {KEEP_W{1'b0}};	
 endtask
 
+task set_tx_default();
+	app_cancel_i = 1'b0;
+	app_early_v_i = 1'b0;
+	mac_ready_i = 1'b1;
+endtask
+
 task send_simple_tx_data(int l);
-	app_valid_i = 1'b0;	
+	app_valid_i = 1'b0;
+	/* send head */
+	app_early_v_i = 1'b1;
 	app_pkt_len_i = l;
+	while( app_ready_v_o == 1'b0) begin
+		/* wait for ready signal */
+		#10;
+		app_early_v_i = 1'b1;
+	end 	
 	for(int i=0; i<l/KEEP_W; i++)begin
-		#10
 		app_valid_i = 1'b1;
 		app_data_i = $random;
 		app_len_i = {KEEP_W{1'b1}};	
+		#10
+		app_valid_i = 1'b1;
 	end
-	#10
 	app_valid_i = 1'b0;
 	app_len_i = {KEEP_W{1'b0}};	
 	app_data_i = {DATA_W{1'bx}};
@@ -85,9 +102,9 @@ initial begin
 	mac_cancel_i = 1'b0;
 	mac_valid_i = 1'b0;
 	/* generated tx header */
-	app_pkt_len_i = 50;
-	#10
+	set_tx_default();
 	set_rx_idle();
+	#10
 	send_simple_tx_data(19);
 	#100
 	
@@ -120,11 +137,16 @@ eth_tx #(
 )m_eth_tx(
 	.clk(clk),
 	.nreset(nreset),
+	.app_early_v_i(app_early_v_i),
+	.app_ready_v_o(app_ready_v_o),
+	.app_cancel_i(app_cancel_i),
 	.app_valid_i(app_valid_i),
 	.app_data_i(app_data_i),
 	.app_len_i(app_len_i),
 	.app_pkt_len_i(app_pkt_len_i),
-	.app_cs_i(app_cs_i)	
+	.app_cs_i(app_cs_i),
+
+	.mac_ready_i(mac_ready_i)	
 );
 
 endmodule
