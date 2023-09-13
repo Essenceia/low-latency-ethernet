@@ -106,7 +106,7 @@ initial begin
 	set_rx_idle();
 	#10
 	send_simple_tx_data(19);
-	#100
+	#300
 	
 	$display("Test finised");
 	$finish;		

@@ -164,8 +164,8 @@ logic              head_rst;
  
 assign head_init = {mac_head, ip_head, t_head};
 /* shift right */
-assign head_rst = fsm_idle_q & ~app_early_v_i;
-assign head_next = head_rst ? head_init : {{KEEP_W*8{1'bx}}, head_q[HEAD_W-KEEP_W-1:0]};
+assign head_rst = fsm_idle_q & app_early_v_i;
+assign head_next = head_rst ? head_init : {{KEEP_W*8{1'bx}}, head_q[HEAD_W-1:DATA_W]};
 always @(posedge clk) begin
 		head_q <= head_next;
 end
@@ -181,8 +181,8 @@ logic                  head_cnt_rst;
 
 assign {unused_head_cnt_add, head_cnt_add} = head_cnt_q + KEEP_W;
 
-assign head_cnt_en = mac_ready_i & ( fsm_head_q | ( fsm_idle_q & app_early_v_i ));
-assign head_cnt_rst = fsm_idle_q & ~app_early_v_i;
+assign head_cnt_en = fsm_head_q | fsm_idle_q;
+assign head_cnt_rst = (fsm_idle_q & ~app_early_v_i) | ~mac_ready_i;
 assign head_cnt_next = head_cnt_rst ? {HEAD_CNT_W{1'b0}}: head_cnt_add;
 assign head_cnt_zero = ~|head_cnt_q;
 
@@ -207,13 +207,18 @@ logic data_ctrl;
 logic data_term;
 logic [KEEP_W-1:0] data_term_keep; 
 logic [LANE0_CNT_N-1:0] data_start;
+logic [DATA_W-1:0] data;
+logic [DATA_W-1:0] data_foot;
 
 assign data_v = fsm_head_q | fsm_data_q | fsm_foot_q;
 assign data_ctrl = head_cnt_zero; //TODO include term
 assign data_start = {{LANE0_CNT_N-1{1'b0}}, head_cnt_zero & fsm_head_q};
 assign data_term  = 1'bx; //TODO
 assign data_term_keep = {KEEP_W{1'bx}}; //TODO
- 
+
+assign data = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
+			| {DATA_W{fsm_data_q}} & app_data_i 
+			| {DATA_W{fsm_foot_q}} & data_foot; 
  
 /* FSM */
 
@@ -244,9 +249,15 @@ always @(posedge clk) begin
 end 
 
 /* output */
+/* app */
+if ( HEAD_W % DATA_W == 0 ) begin
+assign app_ready_v_o = fsm_data_q;
+end
+/* mac */
 assign mac_ctrl_v_o = data_ctrl; 
 assign mac_idle_v_o = ~data_v;
 assign mac_start_v_o = data_start;
 assign mac_term_v_o = data_term;
-assign mac_term_keep_o = data_term_keep; 
+assign mac_term_keep_o = data_term_keep;
+assign mac_data_o = data; 
 endmodule
