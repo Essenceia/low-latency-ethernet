@@ -11,6 +11,11 @@ module eth_tx #(
 	parameter LEN_W = $clog2(KEEP_W+1),
 
 	parameter PKT_LEN_W = 16,
+
+	/* PHY */
+	parameter BLOCK_W = 64,
+	parameter BLOCK_LEN_N = 8,
+	parameter BLOCK_LEN_W = $clog2(BLOCK_LEN_N+1),
 	
 	/* UDP */
 	parameter PORT_W = 16,
@@ -40,6 +45,8 @@ module eth_tx #(
 	parameter MAC_HEAD_LITE_N = MAC_PRE_N + 2*MAC_ADDR_N,
 	parameter MAC_HEAD_N = MAC_HEAD_LITE_N + MAC_VLAN_N + MAC_TYPE_N,
 	parameter MAC_HEAD_W = MAC_HEAD_N*8,
+	parameter MAC_CRC_N  = 8,
+	parameter MAC_CRC_W  = MAC_CRC_N*8,
 	
 	parameter [MAC_ADDR_W-1:0] MAC_SRC_ADDR = {24'h0 ,24'hF82F08},
 	parameter [MAC_ADDR_W-1:0] MAC_DST_ADDR = {24'h0 ,24'hFCD4F2},
@@ -64,8 +71,9 @@ module eth_tx #(
 	/* data steaming */
 	input                  app_valid_i,
 	input [DATA_W-1:0]     app_data_i,
-	/* verilator lint_off UNUSEDSIGNAL*/
 	input [LEN_W-1:0]      app_len_i,
+	input                  app_last_i,/* last must contain some valid data (len != 0)*/
+	/* verilator lint_off UNUSEDSIGNAL*/
 	/* packet data checksum used only if USP_CS = 1 */
 	input [UDP_CS_W-1:0]   app_cs_i,
 	/* verilator lint_on UNUSEDSIGNAL*/
@@ -75,10 +83,10 @@ module eth_tx #(
 
 	output                   mac_ctrl_v_o,
 	output [DATA_W-1:0]      mac_data_o,	
-	output [LANE0_CNT_N-1:0] mac_start_v_o,
-	output                   mac_idle_v_o,
-	output                   mac_term_v_o,
-	output [KEEP_W-1:0]      mac_term_keep_o
+	output [LANE0_CNT_N-1:0] mac_start_o,
+	output                   mac_idle_o,
+	output                   mac_term_o,
+	output [BLOCK_LEN_W-1:0] mac_term_len_o
 );
 /* transport layer header */
 localparam T_HEAD_N = UDP ? UDP_HEAD_N : TCP_HEAD_N;
@@ -93,6 +101,9 @@ localparam HEAD_CNT_W = $clog2(HEAD_N+1);
 /* upd lenght for calculating IP data length */
 localparam [PKT_LEN_W-1:0] IP_LEN_ADD = UDP_HEAD_N;
 
+/* crc */
+localparam CRC_LEN_W = $clog2(MAC_CRC_N+1);
+
 /* fsm */
 reg   fsm_idle_q;
 logic fsm_idle_next;
@@ -103,6 +114,8 @@ logic fsm_data_next;
 reg   fsm_foot_q;
 logic fsm_foot_next;
 
+logic end_head_v;
+logic end_foot_v;
 
 /* Generate Header */
 
@@ -192,34 +205,95 @@ always @(posedge clk) begin
 	end
 end
 
-/* Sections end */
-logic end_head_v;
-logic end_data_v;
-logic end_foot_v;
-
 assign end_head_v = head_cnt_q >= HEAD_N;
-assign end_data_v = 1'b0; // TODO
-assign end_foot_v = 1'b0; // TODO
+
+/* footer 
+ * footer only contains MAC crc
+ * calculate MAC crc to be added as footer
+ * crc includes all information appart from itself
+ * and the preamble bytes of the mac header */
+
+logic              crc_data_lite_v; /* data to be accounted for in crc calculation */
+logic [KEEP_W-1:0] crc_data_v; 
+logic              crc_start_v;
+logic [KEEP_W-1:0] app_data_keep;
+logic [DATA_W-1:0] data_lite;
+
+/* exclude mac pre */
+assign crc_start_v = head_cnt_q == MAC_PRE_N;
+assign crc_data_lite_v = (fsm_head_q & (head_cnt_q >= MAC_PRE_N))
+					   | fsm_data_q;
+assign crc_data_v = {KEEP_W{crc_data_lite_v}} & app_data_keep;
+
+/* convert app data len to keep */
+len_to_mask #(.LEN_W(LEN_W), .LEN_MAX(KEEP_W)
+)m_data_len_to_keep(
+	.len_i(app_len_i),
+	.mask_o(app_data_keep)
+);
+
+/* TODO : update crc block to support partial data bytes valid */
+crc #(.DATA_W(DATA_W)
+)m_crc_tx(
+	.clk(clk),
+	.valid_i(crc_data_v),
+	.start_i(crc_start_v),
+	.data_i(data_lite),
+	.crc_o(crc_raw)
+);
+/* foot cnt */
+logic [CRC_LEN_W-1:0] foot_cnt_next;
+logic [CRC_LEN_W-1:0] foot_cnt_dec;
+reg   [CRC_LEN_W-1:0] foot_cnt_q;
+logic                 foot_cnt_rst;
+logic [CRC_LEN_W-1:0] foot_cnt_init;
+
+/* calculate crc init value: data might be shifter by a few bytes depending
+ * on the length of valid app data bytes :
+ * we cram the first crc bytes alongside the last app data 
+ * bytes if there is space. */
+assign foot_cnt_init = MAC_CRC_N - app_len_i;
+assign foot_cnt_rst = app_last_i;
+assign foot_cnt_next = foot_cnt_rst ? foot_cnt_init : foot_cnt_dec;
+assign foot_cnt_dec  = foot_cnt_q - KEEP_W;
+assign end_foot_v = ~(foot_cnt_q > KEEP_W);
+
+always @(posedge clk) begin
+	foot_cnt_q <= foot_cnt_next;
+end
+
+assign crc_data_keep = ~app_data_keep;
+
+logic [MAC_CRC_W-1:0] crc_raw;
+logic [MAC_CRC_W-1:0] crc_shifted;
+logic [MAC_CRC_W-1:0] crc_next;
+reg   [MAC_CRC_W-1:0] crc_q;
+reg   [CRC_LEN_W-1:0] crc_cnt_q;
+logic [KEEP_W-1:0]    crc_data_keep;
+logic [DATA_W-1:0]    data_foot;
 
 /* data */
 logic data_v;
 logic data_ctrl;
 logic data_term;
-logic [KEEP_W-1:0] data_term_keep; 
+logic [KEEP_W-1:0] data_term_len; 
 logic [LANE0_CNT_N-1:0] data_start;
 logic [DATA_W-1:0] data;
-logic [DATA_W-1:0] data_foot;
 
 assign data_v = fsm_head_q | fsm_data_q | fsm_foot_q;
-assign data_ctrl = head_cnt_zero; //TODO include term
+assign data_ctrl = head_cnt_zero | data_term;
 assign data_start = {{LANE0_CNT_N-1{1'b0}}, head_cnt_zero & fsm_head_q};
-assign data_term  = 1'bx; //TODO
-assign data_term_keep = {KEEP_W{1'bx}}; //TODO
+/* last block : in last block we can only send 7 bytes of data */
+assign data_term  = fsm_foot_q & (crc_cnt_q < BLOCK_LEN_N); 
+/* no holes in data until term, only evaluated when data_term == 1 */
+assign data_term_len = {LEN_W{~(fsm_foot_q)}} & crc_cnt_q[BLOCK_LEN_W-1:0];  
 
-assign data = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
-			| {DATA_W{fsm_data_q}} & app_data_i 
+/* lite : doesn't include foot, used to feed crc calculation */
+assign data_lite = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
+		    	 | {DATA_W{fsm_data_q}} & app_data_i; 
+assign data = data_lite
 			| {DATA_W{fsm_foot_q}} & data_foot; 
- 
+
 /* FSM */
 
 assign fsm_idle_next = app_cancel_i
@@ -230,9 +304,9 @@ assign fsm_head_next = ~app_cancel_i
 					 | fsm_head_q & ~end_head_v );
 assign fsm_data_next = ~app_cancel_i
 					 &(fsm_head_q & end_head_v
-					 | fsm_data_q & ~end_data_v);
+					 | fsm_data_q & ~app_last_i);
 assign fsm_foot_next = ~app_cancel_i
-					 &( fsm_data_q & end_data_v
+					 &( fsm_data_q & app_last_i
 					 |  fsm_foot_q & ~end_foot_v);
 always @(posedge clk) begin
 	if( ~nreset) begin
@@ -255,9 +329,13 @@ assign app_ready_v_o = fsm_data_q;
 end
 /* mac */
 assign mac_ctrl_v_o = data_ctrl; 
-assign mac_idle_v_o = ~data_v;
-assign mac_start_v_o = data_start;
-assign mac_term_v_o = data_term;
-assign mac_term_keep_o = data_term_keep;
-assign mac_data_o = data; 
+assign mac_idle_o = ~data_v;
+assign mac_start_o = data_start;
+assign mac_term_o = data_term;
+assign mac_term_len_o = data_term_len;
+assign mac_data_o = data;
+
+`ifdef FORMAL
+
+`endif
 endmodule

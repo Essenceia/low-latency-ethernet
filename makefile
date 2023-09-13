@@ -142,7 +142,7 @@ crc_f := crc32.v
 mac_f :=crc.v mac_rx.v mac_head_tx.v $(crc_deps)
 ip_f := ipv4_rx.v ipv4_head_tx.v ip_addr_match.v
 udp_f := udp_head_tx.v udp_rx.v 
-utils_f := thermo_to_len.v
+utils_f := thermo_to_len.v len_to_mask.v
  
 # add dir names
 mac_deps := $(foreach x,$(mac_f),$(MAC_DIR)/$x) 

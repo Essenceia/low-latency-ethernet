@@ -37,6 +37,7 @@ logic                  app_early_v_i;
 logic                  app_ready_v_o;
 logic                  app_cancel_i;
 logic                  app_valid_i;
+logic                  app_last_i;
 logic [DATA_W-1:0]     app_data_i;
 logic [LEN_W-1:0]      app_len_i;
 logic [PKT_LEN_W-1:0]  app_pkt_len_i;
@@ -89,6 +90,7 @@ task send_simple_tx_data(int l);
 		app_len_i[i] = 1'b1;
 		app_data_i[i*8+:8] = $random;
 	end
+	app_last_i = 1'b1;
 	#10
 	app_valid_i = 1'b0;
 endtask
@@ -143,6 +145,7 @@ eth_tx #(
 	.app_valid_i(app_valid_i),
 	.app_data_i(app_data_i),
 	.app_len_i(app_len_i),
+	.app_last_i(app_last_i),
 	.app_pkt_len_i(app_pkt_len_i),
 	.app_cs_i(app_cs_i),
 
