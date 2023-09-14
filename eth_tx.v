@@ -11,7 +11,6 @@ module eth_tx #(
 	parameter LEN_W = $clog2(KEEP_W+1),
 
 	/* PHY */
-	parameter BLOCK_W = 64,
 	parameter BLOCK_N = 8,
 	parameter BLOCK_LEN_W = $clog2(BLOCK_N+1),
 	
@@ -53,9 +52,7 @@ module eth_tx #(
 
 	/* Head */	
 	parameter TCP_HEAD_N = 20,
-	parameter TCP_HEAD_W = TCP_HEAD_N*8,
 	parameter UDP_HEAD_N = 8, 
-	parameter UDP_HEAD_W = UDP_HEAD_N*8,
 
 	/* APP */
 	parameter PKT_LEN_W = 16,
@@ -272,10 +269,16 @@ logic                  foot_cnt_rst;
  * we cram the first crc bytes alongside the last app data 
  * bytes if there is space. */
 assign foot_cnt_rst = fsm_data_q & app_last_block_next_i;
+
+/* verilator lint_off WIDTHTRUNC */
 assign {unused_foot_cnt_init,foot_cnt_init} = app_last_block_next_len_i + MAC_CRC_N;
-assign foot_cnt_next = foot_cnt_rst ? foot_cnt_init : foot_cnt_dec;
 assign foot_cnt_dec  = foot_cnt_q - KEEP_W;
+/* verilator lint_on WIDTHTRUNC */
+/* verilator lint_off WIDTHEXPAND */
 assign end_foot_v = ~(foot_cnt_q > KEEP_W);
+/* verilator lint_on WIDTHEXPAND */
+
+assign foot_cnt_next = foot_cnt_rst ? foot_cnt_init : foot_cnt_dec;
 
 always @(posedge clk) begin
 	foot_cnt_q <= foot_cnt_next;
@@ -286,6 +289,8 @@ logic [MAC_CRC_W-1:0] crc_raw_shifted;
 logic [MAC_CRC_W-1:0] crc_raw_shifted_arr[KEEP_W:1];
 logic [MAC_CRC_W-1:0] crc_next;
 reg   [MAC_CRC_W-1:0] crc_q;
+logic                 crc_rst;
+
 logic [DATA_W-1:0]    data_foot;
 logic [DATA_W-1:0]    data_last;
 logic [DATA_W-1:0]    data_last_crc_shifted;
@@ -300,16 +305,18 @@ generate
 			assign crc_raw_shifted_arr[KEEP_W] = crc_raw;
 		end else begin
 			/* partial data bytes valid on last */
-			assign crc_raw_shifted_arr[i] = {{8*i{1'bx}},crc_raw[MAC_CRC_W-1-:8*i]};
-			assign data_last_crc_shifted_arr[i] = {crc_raw[8*i:0], {8*i{1'bx}}};
+			assign crc_raw_shifted_arr[i] = {{MAC_CRC_W-8*i{1'bx}},crc_raw[MAC_CRC_W-1-:8*i]};
+			assign data_last_crc_shifted_arr[i] = {crc_raw[8*i-1:0], {8*i{1'bx}}};
 		end
 	end	
 endgenerate
 
 always_comb begin: crc_shift_sel_mux
 	for(int s=1; s<=KEEP_W; s++) begin 
+		/* verilator lint_off WIDTHEXPAND */
 		if ( s == foot_cnt_q[LEN_W-1:0]) crc_raw_shifted = crc_raw_shifted_arr[s];
 		if ( s == foot_cnt_q[LEN_W-1:0]) data_last_crc_shifted = data_last_crc_shifted_arr[s];
+		/* verilator lint_on WIDTHEXPAND */
 	end
 end
 
@@ -320,28 +327,40 @@ generate
 						         | {8{~app_data_keep[i]}} & data_last_crc_shifted[i*8+:8];
 	end
 endgenerate
+
+/* flop crc data */
+assign crc_rst = fsm_data_q & app_last_i;
+assign crc_next = crc_rst? crc_raw_shifted : {{DATA_W{1'bx}},crc_q[MAC_CRC_W-1:DATA_W]};
+always @(posedge clk) begin
+	crc_q <= crc_next;
+end
+
+assign data_foot = crc_q[DATA_W-1:0];
+
 /* data */
 logic data_v;
 logic data_ctrl;
 logic data_term;
-logic [KEEP_W-1:0] data_term_len; 
+logic [BLOCK_LEN_W-1:0] data_term_len; 
 logic [LANE0_CNT_N-1:0] data_start;
 logic [DATA_W-1:0] data;
 
-assign data_v = fsm_head_q | fsm_data_q | fsm_foot_q;
-assign data_ctrl = head_cnt_zero | data_term;
+assign data_v     = fsm_head_q | fsm_data_q | fsm_foot_q;
+assign data_ctrl  = head_cnt_zero | data_term;
 assign data_start = {{LANE0_CNT_N-1{1'b0}}, head_cnt_zero & fsm_head_q};
+
 /* last block : in last block we can only send 7 bytes of data */
 assign data_term  = fsm_foot_q & (foot_cnt_q < BLOCK_N); 
+
 /* no holes in data until term, only evaluated when data_term == 1 */
-assign data_term_len = {LEN_W{~(fsm_foot_q)}} & foot_cnt_q[BLOCK_LEN_W-1:0];  
+assign data_term_len = {BLOCK_LEN_W{~(fsm_foot_q)}} & foot_cnt_q[BLOCK_LEN_W-1:0];  
 
 /* lite : doesn't include foot, used to feed crc calculation */
 assign data_lite = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
 		    	 | {DATA_W{fsm_data_q & ~app_last_i}} & app_data_i; 
 assign data = data_lite
-			| {DATA_W{fsm_data_q & app_last_i}} & data_last
-			| {DATA_W{fsm_foot_q}} & data_foot; 
+		    | {DATA_W{fsm_data_q & app_last_i}} & data_last
+		    | {DATA_W{fsm_foot_q}} & data_foot; 
 
 /* FSM */
 

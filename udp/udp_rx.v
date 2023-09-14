@@ -28,8 +28,7 @@ module udp_rx #(
 	output              valid_o,
 	//output              last_o,TODO: check if we can do without
 	output [DATA_W-1:0] data_o, 
-	output [LEN_W-1:0]  len_o,
-	output              cancel_o	
+	output [LEN_W-1:0]  len_o
 );
 localparam CNT_W = 16;
 localparam HEAD_N = 8;
@@ -144,7 +143,6 @@ end
 assign valid_o  = fsm_data_q & valid_i & ~bypass_v_q;
 assign data_o   = data_i;
 assign len_o    = len_i;
-assign cancel_o = 1'bx; // TODO 
 `ifdef FORMAL
 initial begin
 	a_reset : assume ( ~nreset );

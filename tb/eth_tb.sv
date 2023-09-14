@@ -60,7 +60,9 @@ logic                   phy_idle_o;
 logic                   phy_term_o;
 logic [BLOCK_LEN_W-1:0] phy_term_len_o;
 
+/* verilator lint_off BLKSEQ */
 always clk = #5 ~clk;
+/* verilator lint_on BLKSEQ */
 
 task set_rx_idle();
 	mac_valid_i = 1'b1;
@@ -78,48 +80,65 @@ task set_tx_default();
 	app_early_v_i = 1'b0;
 	app_last_i = 1'b0;
 	phy_ready_i = 1'b1;
+	/* verilator lint_off WIDTHTRUNC */
 	app_len_i = KEEP_W;
+	/* verilator lint_on WIDTHTRUNC */
+	app_cs_i = {UDP_CS_W{1'bx}};
 endtask
 
 task set_last_tx(int x, int l);
 	$display("x %d %d %d %d",x,x%BLOCK_N,x/BLOCK_N,l/BLOCK_N);
 	if( (x%BLOCK_N==0) & ((x/BLOCK_N) == (l/BLOCK_N)))begin
 		app_last_block_next_i = 1'b1;
+		/* verilator lint_off WIDTHTRUNC */
 		app_last_block_next_len_i = l%BLOCK_N;
+		/* verilator lint_on WIDTHTRUNC */
 	end else begin
 		app_last_block_next_i = 1'b0;
 	end
 endtask
 
 task send_simple_tx_data(int l);
-	//app_valid_i = 1'b0;
+	
 	/* send head */
 	app_early_v_i = 1'b1;
+	
+	/* verilator lint_off WIDTHTRUNC */
 	app_pkt_len_i = l;
+	/* verilator lint_on WIDTHTRUNC */
+	
 	while( app_ready_v_o == 1'b0) begin
 		/* wait for ready signal */
 		#10;
 		app_early_v_i = 1'b1;
 	end 
+
 	app_early_v_i = 1'b0;	
+
 	for(int i=0; i<l/KEEP_W; i++)begin
+		/* verilator lint_off WIDTHTRUNC */
 		app_data_i = $random;
+		/* verilator lint_on WIDTHTRUNC */
 		app_len_i = {KEEP_W{1'b1}};
 		set_last_tx(i*KEEP_W,l);
 		#10
 		assert(~$isunknown(phy_data_o));
 	end
+
 	app_len_i = {KEEP_W{1'b0}};	
 	app_data_i = {DATA_W{1'bx}};
 	app_last_block_next_i = 1'b0;
 	app_last_block_next_len_i = {BLOCK_LEN_W{1'bx}};
 	app_len_i = 0;
+
 	for(int i=0; i < l%KEEP_W; i++)begin
 		$display("i %d l %d",i,l);
-		//app_valid_i = 1'b1;
 		app_len_i = app_len_i + 1;
+		/* verilator lint_off WIDTHTRUNC */
 		app_data_i[i*8+:8] = $random;
+		/* verilator lint_on WIDTHTRUNC */
 	end
+
 	app_last_i = 1'b1;
 	#10
 	app_last_i = 1'b0;
