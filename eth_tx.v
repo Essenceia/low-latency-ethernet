@@ -129,7 +129,7 @@ logic end_foot_v;
 
 /* Transport layer UDP/TCP */
 logic [T_HEAD_W-1:0] t_head;
-if ( UDP ) begin
+if ( UDP ) begin : transport_layer
 /* UDP */
 udp_head_tx #(
 	.PORT_W(PORT_W),
@@ -227,13 +227,22 @@ logic                 crc_start_v;
 logic [MAC_CRC_W-1:0] crc_raw;
 logic [KEEP_W-1:0]    app_data_keep;
 logic [DATA_W-1:0]    data_lite;
+logic [DATA_W-1:0]    crc_data;
 
 /* exclude mac pre */
 assign crc_start_v = head_cnt_q == MAC_PRE_N;
-assign crc_data_lite_v = (fsm_head_q & (head_cnt_q >= MAC_PRE_N))
+
+assign crc_data_lite_v = fsm_head_q & (head_cnt_q >= MAC_PRE_N)
 					   | fsm_data_q;
 assign crc_data_v = {KEEP_W{crc_data_lite_v}} & app_data_keep;
-
+/* TODO temporary solution until crc update : mask invalid data
+ * using keep mask */
+genvar i;
+generate
+	for(i=0; i<KEEP_W; i++) begin
+		assign crc_data[i*8+:8] = {8{app_data_keep[i]}} & app_data_i[i*8+:8];
+	end
+endgenerate
 /* convert app data len to keep */
 len_to_mask #(.LEN_W(LEN_W), .LEN_MAX(KEEP_W)
 )m_data_len_to_keep(
@@ -242,27 +251,27 @@ len_to_mask #(.LEN_W(LEN_W), .LEN_MAX(KEEP_W)
 );
 
 /* TODO : update crc block to support partial data bytes valid */
-crc #(.DATA_W(DATA_W)
+crc #(.DATA_W(DATA_W),.CRC_W(MAC_CRC_W)
 )m_crc_tx(
 	.clk(clk),
 	.valid_i(crc_data_v[0]),
 	.start_i(crc_start_v),
-	.data_i(data_lite),
+	.data_i(crc_data),
 	.crc_o(crc_raw)
 );
 /* foot cnt */
-logic                      unused_foot_cnt_init;
+logic                  unused_foot_cnt_init;
 logic [FOOT_CNT_W-1:0] foot_cnt_init;
 logic [FOOT_CNT_W-1:0] foot_cnt_next;
 logic [FOOT_CNT_W-1:0] foot_cnt_dec;
 reg   [FOOT_CNT_W-1:0] foot_cnt_q;
-logic                 foot_cnt_rst;
+logic                  foot_cnt_rst;
 
 /* calculate crc init value: data might be shifter by a few bytes depending
  * on the length of valid app data bytes :
  * we cram the first crc bytes alongside the last app data 
  * bytes if there is space. */
-assign foot_cnt_rst = fsm_data_q & app_last_block_next_len_i;
+assign foot_cnt_rst = fsm_data_q & app_last_block_next_i;
 assign {unused_foot_cnt_init,foot_cnt_init} = app_last_block_next_len_i + MAC_CRC_N;
 assign foot_cnt_next = foot_cnt_rst ? foot_cnt_init : foot_cnt_dec;
 assign foot_cnt_dec  = foot_cnt_q - KEEP_W;
@@ -273,14 +282,44 @@ always @(posedge clk) begin
 end
 
 
-logic [MAC_CRC_W-1:0] crc_shifted;
+logic [MAC_CRC_W-1:0] crc_raw_shifted;
+logic [MAC_CRC_W-1:0] crc_raw_shifted_arr[KEEP_W:1];
 logic [MAC_CRC_W-1:0] crc_next;
 reg   [MAC_CRC_W-1:0] crc_q;
-logic [KEEP_W-1:0]    crc_data_keep;
 logic [DATA_W-1:0]    data_foot;
+logic [DATA_W-1:0]    data_last;
+logic [DATA_W-1:0]    data_last_crc_shifted;
+logic [DATA_W-1:0]    data_last_crc_shifted_arr[KEEP_W-1:1];
 
-assign crc_data_keep = ~app_data_keep;
+/* shift crc based on number of data bytes in last packet */
+generate 
+	/* starts at 1 : no valid data in last packet, violates the rules for app last */
+	for(i=1; i<=KEEP_W; i++) begin: crc_shift_data_gen
+		if ( i == KEEP_W ) begin
+			/* all bytes on last are valid, no crc shift needed */
+			assign crc_raw_shifted_arr[KEEP_W] = crc_raw;
+		end else begin
+			/* partial data bytes valid on last */
+			assign crc_raw_shifted_arr[i] = {{8*i{1'bx}},crc_raw[MAC_CRC_W-1-:8*i]};
+			assign data_last_crc_shifted_arr[i] = {crc_raw[8*i:0], {8*i{1'bx}}};
+		end
+	end	
+endgenerate
 
+always_comb begin: crc_shift_sel_mux
+	for(int s=1; s<=KEEP_W; s++) begin 
+		if ( s == foot_cnt_q[LEN_W-1:0]) crc_raw_shifted = crc_raw_shifted_arr[s];
+		if ( s == foot_cnt_q[LEN_W-1:0]) data_last_crc_shifted = data_last_crc_shifted_arr[s];
+	end
+end
+
+/* data last : append first crc byte(s) after last app data */
+generate
+	for(i=0; i<KEEP_W; i++) begin : data_last_gen
+		assign data_last[i*8+:8] = {8{app_data_keep[i]}}  & app_data_i[i*8+:8]
+						         | {8{~app_data_keep[i]}} & data_last_crc_shifted[i*8+:8];
+	end
+endgenerate
 /* data */
 logic data_v;
 logic data_ctrl;
@@ -299,8 +338,9 @@ assign data_term_len = {LEN_W{~(fsm_foot_q)}} & foot_cnt_q[BLOCK_LEN_W-1:0];
 
 /* lite : doesn't include foot, used to feed crc calculation */
 assign data_lite = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
-		    	 | {DATA_W{fsm_data_q}} & app_data_i; 
+		    	 | {DATA_W{fsm_data_q & ~app_last_i}} & app_data_i; 
 assign data = data_lite
+			| {DATA_W{fsm_data_q & app_last_i}} & data_last
 			| {DATA_W{fsm_foot_q}} & data_foot; 
 
 /* FSM */

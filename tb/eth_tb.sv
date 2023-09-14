@@ -78,6 +78,7 @@ task set_tx_default();
 	app_early_v_i = 1'b0;
 	app_last_i = 1'b0;
 	phy_ready_i = 1'b1;
+	app_len_i = KEEP_W;
 endtask
 
 task set_last_tx(int x, int l);
@@ -107,16 +108,16 @@ task send_simple_tx_data(int l);
 		set_last_tx(i*KEEP_W,l);
 		#10
 		assert(~$isunknown(phy_data_o));
-		//app_valid_i = 1'b1;
 	end
-	//app_valid_i = 1'b0;
 	app_len_i = {KEEP_W{1'b0}};	
 	app_data_i = {DATA_W{1'bx}};
-	app_last_block_next_len_i = 1'b0;
+	app_last_block_next_i = 1'b0;
+	app_last_block_next_len_i = {BLOCK_LEN_W{1'bx}};
+	app_len_i = 0;
 	for(int i=0; i < l%KEEP_W; i++)begin
 		$display("i %d l %d",i,l);
 		//app_valid_i = 1'b1;
-		app_len_i[i] = 1'b1;
+		app_len_i = app_len_i + 1;
 		app_data_i[i*8+:8] = $random;
 	end
 	app_last_i = 1'b1;
