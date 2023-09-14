@@ -10,8 +10,12 @@ module eth_tx #(
 	parameter KEEP_W = DATA_W/8,
 	parameter LEN_W = $clog2(KEEP_W+1),
 
-	parameter PKT_LEN_W = 16,
+	parameter BLOCK_N = 8,
 
+	/* APP */
+	parameter PKT_LEN_W = 16,
+	parameter APP_LAST_LEN_N = BLOCK_LEN_N+KEEP_W,
+	parameter APP_LAST_LEN_W = $clog2(APP_LAST_LEN_N+1),
 	/* PHY */
 	parameter BLOCK_W = 64,
 	parameter BLOCK_LEN_N = 8,
@@ -45,7 +49,7 @@ module eth_tx #(
 	parameter MAC_HEAD_LITE_N = MAC_PRE_N + 2*MAC_ADDR_N,
 	parameter MAC_HEAD_N = MAC_HEAD_LITE_N + MAC_VLAN_N + MAC_TYPE_N,
 	parameter MAC_HEAD_W = MAC_HEAD_N*8,
-	parameter MAC_CRC_N  = 8,
+	parameter MAC_CRC_N  = 4,
 	parameter MAC_CRC_W  = MAC_CRC_N*8,
 	
 	parameter [MAC_ADDR_W-1:0] MAC_SRC_ADDR = {24'h0 ,24'hF82F08},
@@ -72,21 +76,24 @@ module eth_tx #(
 	input                  app_valid_i,
 	input [DATA_W-1:0]     app_data_i,
 	input [LEN_W-1:0]      app_len_i,
-	input                  app_last_i,/* last must contain some valid data (len != 0)*/
+	/* term, last block */
+	input                      app_last_i,/* last valid data len!=0 */
+	input                      app_last_block_next_i,/* next start of last block */
+	input [APP_LAST_LEN_W-1:0] app_last_block_next_len_i,
 	/* verilator lint_off UNUSEDSIGNAL*/
 	/* packet data checksum used only if USP_CS = 1 */
 	input [UDP_CS_W-1:0]   app_cs_i,
 	/* verilator lint_on UNUSEDSIGNAL*/
 	
-	/* pma */ 
-	output                   mac_ready_i,
+	/* physical layer */ 
+	input                    phy_ready_i,
 
-	output                   mac_ctrl_v_o,
-	output [DATA_W-1:0]      mac_data_o,	
-	output [LANE0_CNT_N-1:0] mac_start_o,
-	output                   mac_idle_o,
-	output                   mac_term_o,
-	output [BLOCK_LEN_W-1:0] mac_term_len_o
+	output                   phy_ctrl_v_o,
+	output [DATA_W-1:0]      phy_data_o,	
+	output [LANE0_CNT_N-1:0] phy_start_o,
+	output                   phy_idle_o,
+	output                   phy_term_o,
+	output [BLOCK_LEN_W-1:0] phy_term_len_o
 );
 /* transport layer header */
 localparam T_HEAD_N = UDP ? UDP_HEAD_N : TCP_HEAD_N;
@@ -101,8 +108,9 @@ localparam HEAD_CNT_W = $clog2(HEAD_N+1);
 /* upd lenght for calculating IP data length */
 localparam [PKT_LEN_W-1:0] IP_LEN_ADD = UDP_HEAD_N;
 
-/* crc */
-localparam CRC_LEN_W = $clog2(MAC_CRC_N+1);
+/* footer, contains only mac crc */
+localparam FOOT_CNT_MAX = MAC_CRC_N + APP_LAST_LEN_N ;
+localparam FOOT_CNT_W = $clog2(FOOT_CNT_MAX+1);
 
 /* fsm */
 reg   fsm_idle_q;
@@ -195,7 +203,7 @@ logic                  head_cnt_rst;
 assign {unused_head_cnt_add, head_cnt_add} = head_cnt_q + KEEP_W;
 
 assign head_cnt_en = fsm_head_q | fsm_idle_q;
-assign head_cnt_rst = (fsm_idle_q & ~app_early_v_i) | ~mac_ready_i;
+assign head_cnt_rst = (fsm_idle_q & ~app_early_v_i) | ~phy_ready_i;
 assign head_cnt_next = head_cnt_rst ? {HEAD_CNT_W{1'b0}}: head_cnt_add;
 assign head_cnt_zero = ~|head_cnt_q;
 
@@ -213,11 +221,12 @@ assign end_head_v = head_cnt_q >= HEAD_N;
  * crc includes all information appart from itself
  * and the preamble bytes of the mac header */
 
-logic              crc_data_lite_v; /* data to be accounted for in crc calculation */
-logic [KEEP_W-1:0] crc_data_v; 
-logic              crc_start_v;
-logic [KEEP_W-1:0] app_data_keep;
-logic [DATA_W-1:0] data_lite;
+logic                 crc_data_lite_v; /* data to be accounted for in crc calculation */
+logic [KEEP_W-1:0]    crc_data_v; 
+logic                 crc_start_v;
+logic [MAC_CRC_W-1:0] crc_raw;
+logic [KEEP_W-1:0]    app_data_keep;
+logic [DATA_W-1:0]    data_lite;
 
 /* exclude mac pre */
 assign crc_start_v = head_cnt_q == MAC_PRE_N;
@@ -236,24 +245,25 @@ len_to_mask #(.LEN_W(LEN_W), .LEN_MAX(KEEP_W)
 crc #(.DATA_W(DATA_W)
 )m_crc_tx(
 	.clk(clk),
-	.valid_i(crc_data_v),
+	.valid_i(crc_data_v[0]),
 	.start_i(crc_start_v),
 	.data_i(data_lite),
 	.crc_o(crc_raw)
 );
 /* foot cnt */
-logic [CRC_LEN_W-1:0] foot_cnt_next;
-logic [CRC_LEN_W-1:0] foot_cnt_dec;
-reg   [CRC_LEN_W-1:0] foot_cnt_q;
+logic                      unused_foot_cnt_init;
+logic [FOOT_CNT_W-1:0] foot_cnt_init;
+logic [FOOT_CNT_W-1:0] foot_cnt_next;
+logic [FOOT_CNT_W-1:0] foot_cnt_dec;
+reg   [FOOT_CNT_W-1:0] foot_cnt_q;
 logic                 foot_cnt_rst;
-logic [CRC_LEN_W-1:0] foot_cnt_init;
 
 /* calculate crc init value: data might be shifter by a few bytes depending
  * on the length of valid app data bytes :
  * we cram the first crc bytes alongside the last app data 
  * bytes if there is space. */
-assign foot_cnt_init = MAC_CRC_N - app_len_i;
-assign foot_cnt_rst = app_last_i;
+assign foot_cnt_rst = fsm_data_q & app_last_block_next_len_i;
+assign {unused_foot_cnt_init,foot_cnt_init} = app_last_block_next_len_i + MAC_CRC_N;
 assign foot_cnt_next = foot_cnt_rst ? foot_cnt_init : foot_cnt_dec;
 assign foot_cnt_dec  = foot_cnt_q - KEEP_W;
 assign end_foot_v = ~(foot_cnt_q > KEEP_W);
@@ -262,15 +272,14 @@ always @(posedge clk) begin
 	foot_cnt_q <= foot_cnt_next;
 end
 
-assign crc_data_keep = ~app_data_keep;
 
-logic [MAC_CRC_W-1:0] crc_raw;
 logic [MAC_CRC_W-1:0] crc_shifted;
 logic [MAC_CRC_W-1:0] crc_next;
 reg   [MAC_CRC_W-1:0] crc_q;
-reg   [CRC_LEN_W-1:0] crc_cnt_q;
 logic [KEEP_W-1:0]    crc_data_keep;
 logic [DATA_W-1:0]    data_foot;
+
+assign crc_data_keep = ~app_data_keep;
 
 /* data */
 logic data_v;
@@ -284,9 +293,9 @@ assign data_v = fsm_head_q | fsm_data_q | fsm_foot_q;
 assign data_ctrl = head_cnt_zero | data_term;
 assign data_start = {{LANE0_CNT_N-1{1'b0}}, head_cnt_zero & fsm_head_q};
 /* last block : in last block we can only send 7 bytes of data */
-assign data_term  = fsm_foot_q & (crc_cnt_q < BLOCK_LEN_N); 
+assign data_term  = fsm_foot_q & (foot_cnt_q < BLOCK_LEN_N); 
 /* no holes in data until term, only evaluated when data_term == 1 */
-assign data_term_len = {LEN_W{~(fsm_foot_q)}} & crc_cnt_q[BLOCK_LEN_W-1:0];  
+assign data_term_len = {LEN_W{~(fsm_foot_q)}} & foot_cnt_q[BLOCK_LEN_W-1:0];  
 
 /* lite : doesn't include foot, used to feed crc calculation */
 assign data_lite = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
@@ -328,12 +337,12 @@ if ( HEAD_W % DATA_W == 0 ) begin
 assign app_ready_v_o = fsm_data_q;
 end
 /* mac */
-assign mac_ctrl_v_o = data_ctrl; 
-assign mac_idle_o = ~data_v;
-assign mac_start_o = data_start;
-assign mac_term_o = data_term;
-assign mac_term_len_o = data_term_len;
-assign mac_data_o = data;
+assign phy_ctrl_v_o = data_ctrl; 
+assign phy_idle_o = ~data_v;
+assign phy_start_o = data_start;
+assign phy_term_o = data_term;
+assign phy_term_len_o = data_term_len;
+assign phy_data_o = data;
 
 `ifdef FORMAL
 

@@ -43,7 +43,7 @@ logic [LEN_W-1:0]      app_len_i;
 logic [PKT_LEN_W-1:0]  app_pkt_len_i;
 logic [UDP_CS_W-1:0]   app_cs_i;
 
-logic                  mac_ready_i;
+logic                  phy_ready_i;
 always clk = #5 ~clk;
 
 task set_rx_idle();
@@ -60,7 +60,7 @@ endtask
 task set_tx_default();
 	app_cancel_i = 1'b0;
 	app_early_v_i = 1'b0;
-	mac_ready_i = 1'b1;
+	phy_ready_i = 1'b1;
 endtask
 
 task send_simple_tx_data(int l);
@@ -149,7 +149,7 @@ eth_tx #(
 	.app_pkt_len_i(app_pkt_len_i),
 	.app_cs_i(app_cs_i),
 
-	.mac_ready_i(mac_ready_i)	
+	.phy_ready_i(phy_ready_i)	
 );
 
 endmodule
