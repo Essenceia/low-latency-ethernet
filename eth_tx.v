@@ -10,16 +10,10 @@ module eth_tx #(
 	parameter KEEP_W = DATA_W/8,
 	parameter LEN_W = $clog2(KEEP_W+1),
 
-	parameter BLOCK_N = 8,
-
-	/* APP */
-	parameter PKT_LEN_W = 16,
-	parameter APP_LAST_LEN_N = BLOCK_LEN_N+KEEP_W,
-	parameter APP_LAST_LEN_W = $clog2(APP_LAST_LEN_N+1),
 	/* PHY */
 	parameter BLOCK_W = 64,
-	parameter BLOCK_LEN_N = 8,
-	parameter BLOCK_LEN_W = $clog2(BLOCK_LEN_N+1),
+	parameter BLOCK_N = 8,
+	parameter BLOCK_LEN_W = $clog2(BLOCK_N+1),
 	
 	/* UDP */
 	parameter PORT_W = 16,
@@ -56,11 +50,17 @@ module eth_tx #(
 	parameter [MAC_ADDR_W-1:0] MAC_DST_ADDR = {24'h0 ,24'hFCD4F2},
 
 	parameter LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1,
-	
+
+	/* Head */	
 	parameter TCP_HEAD_N = 20,
 	parameter TCP_HEAD_W = TCP_HEAD_N*8,
 	parameter UDP_HEAD_N = 8, 
-	parameter UDP_HEAD_W = UDP_HEAD_N*8
+	parameter UDP_HEAD_W = UDP_HEAD_N*8,
+
+	/* APP */
+	parameter PKT_LEN_W = 16,
+	parameter APP_LAST_LEN_N = BLOCK_N+KEEP_W,
+	parameter APP_LAST_LEN_W = $clog2(APP_LAST_LEN_N+1)
 )(
 	input clk,
 	input nreset,
@@ -73,7 +73,7 @@ module eth_tx #(
 	output                 app_ready_v_o,
 
 	/* data steaming */
-	input                  app_valid_i,
+//	input                  app_valid_i,
 	input [DATA_W-1:0]     app_data_i,
 	input [LEN_W-1:0]      app_len_i,
 	/* term, last block */
@@ -293,7 +293,7 @@ assign data_v = fsm_head_q | fsm_data_q | fsm_foot_q;
 assign data_ctrl = head_cnt_zero | data_term;
 assign data_start = {{LANE0_CNT_N-1{1'b0}}, head_cnt_zero & fsm_head_q};
 /* last block : in last block we can only send 7 bytes of data */
-assign data_term  = fsm_foot_q & (foot_cnt_q < BLOCK_LEN_N); 
+assign data_term  = fsm_foot_q & (foot_cnt_q < BLOCK_N); 
 /* no holes in data until term, only evaluated when data_term == 1 */
 assign data_term_len = {LEN_W{~(fsm_foot_q)}} & foot_cnt_q[BLOCK_LEN_W-1:0];  
 
