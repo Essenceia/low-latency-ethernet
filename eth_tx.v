@@ -284,6 +284,18 @@ always @(posedge clk) begin
 	foot_cnt_q <= foot_cnt_next;
 end
 
+reg                   last_block_v_q;
+logic                 last_block_v_next;
+
+assign last_block_v_next = fsm_data_q & app_last_block_next_i  
+						 | last_block_v_q & ~fsm_idle_q;
+always @(posedge clk) begin
+	if (~nreset) begin
+		last_block_v_q <= 1'b0;
+	end else begin
+		last_block_v_q <= last_block_v_next;
+ 	end
+end
 
 logic [MAC_CRC_W-1:0] crc_raw_shifted;
 logic [MAC_CRC_W-1:0] crc_raw_shifted_arr[KEEP_W:1];
@@ -350,10 +362,12 @@ assign data_ctrl  = head_cnt_zero | data_term;
 assign data_start = {{LANE0_CNT_N-1{1'b0}}, head_cnt_zero & fsm_head_q};
 
 /* last block : in last block we can only send 7 bytes of data */
-assign data_term  = fsm_foot_q & (foot_cnt_q < BLOCK_N); 
+assign data_term  = fsm_data_q & app_last_block_next_i
+				  | last_block_v_q 
+			      | (fsm_foot_q & (foot_cnt_q < BLOCK_N)); 
 
 /* no holes in data until term, only evaluated when data_term == 1 */
-assign data_term_len = {BLOCK_LEN_W{~(fsm_foot_q)}} & foot_cnt_q[BLOCK_LEN_W-1:0];  
+assign data_term_len = {BLOCK_LEN_W{~data_term}} | foot_cnt_q[BLOCK_LEN_W-1:0];  
 
 /* lite : doesn't include foot, used to feed crc calculation */
 assign data_lite = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
