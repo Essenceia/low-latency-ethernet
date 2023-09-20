@@ -22,3 +22,4 @@
 !*.cpp
 !*.h
 !*.hpp
+mac/mac_foot_tx.v

@@ -16,5 +16,4 @@
     - test cancel
 
 - tx:
-    - write mechanism to stall new header when sending last
-    term bytes from phy
+    - move mac footer from eth tx to it's own module

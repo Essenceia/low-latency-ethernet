@@ -222,23 +222,17 @@ logic                 crc_data_v; /* data to be accounted for in crc calculation
 logic                 crc_start_v;
 logic [MAC_CRC_W-1:0] crc_raw;
 logic [KEEP_W-1:0]    app_data_keep;
-logic [DATA_W-1:0]    data_lite;
-logic [DATA_W-1:0]    crc_data;
 logic [LEN_W-1:0]     crc_data_len;
+logic [DATA_W-1:0]    crc_data;
 
 /* exclude mac pre */
 assign crc_start_v = head_cnt_q == MAC_PRE_N;
 
 assign crc_data_v = fsm_head_q & (head_cnt_q >= MAC_PRE_N)
 			      | fsm_data_q;
-/* TODO temporary solution until crc update : mask invalid data
- * using keep mask */
-genvar i;
-generate
-	for(i=0; i<KEEP_W; i++) begin
-		assign crc_data[i*8+:8] = {8{app_data_keep[i]}} & app_data_i[i*8+:8];
-	end
-endgenerate
+
+assign crc_data = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
+		        | {DATA_W{fsm_data_q}} & app_data_i;  
 /* convert app data len to keep */
 len_to_mask #(.LEN_W(LEN_W), .LEN_MAX(KEEP_W)
 )m_data_len_to_keep(
@@ -314,6 +308,7 @@ logic [DATA_W-1:0]    data_last_crc_shifted;
 logic [DATA_W-1:0]    data_last_crc_shifted_arr[KEEP_W-1:1];
 
 /* shift crc based on number of data bytes in last packet */
+genvar i;
 generate 
 	/* starts at 1 : no valid data in last packet, violates the rules for app last */
 	for(i=1; i<=KEEP_W; i++) begin: crc_shift_data_gen
@@ -329,10 +324,11 @@ generate
 endgenerate
 
 always_comb begin: crc_shift_sel_mux
+	
 	for(int s=1; s<=KEEP_W; s++) begin 
 		/* verilator lint_off WIDTHEXPAND */
 		if ( s == foot_cnt_q[LEN_W-1:0]) crc_raw_shifted = crc_raw_shifted_arr[s];
-		if ( s == foot_cnt_q[LEN_W-1:0]) data_last_crc_shifted = data_last_crc_shifted_arr[s];
+		if ( s == app_len_i ) data_last_crc_shifted = data_last_crc_shifted_arr[s];
 		/* verilator lint_on WIDTHEXPAND */
 	end
 end
@@ -375,10 +371,9 @@ assign data_term  = fsm_data_q & app_last_block_next_i
 assign data_term_len = {BLOCK_LEN_W{~data_term}} | foot_cnt_q[BLOCK_LEN_W-1:0];  
 
 /* lite : doesn't include foot, used to feed crc calculation */
-assign data_lite = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
-		    	 | {DATA_W{fsm_data_q & ~app_last_i}} & app_data_i; 
-assign data = data_lite
-		    | {DATA_W{fsm_data_q & app_last_i}} & data_last
+assign data = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
+		    | {DATA_W{fsm_data_q & ~app_last_i}} & app_data_i 
+		    | {DATA_W{fsm_data_q &  app_last_i}} & data_last
 		    | {DATA_W{fsm_foot_q}} & data_foot; 
 
 /* FSM */
