@@ -118,8 +118,8 @@ task send_simple_tx_data(int l);
 	for(int i=0; i<l/KEEP_W; i++)begin
 		/* verilator lint_off WIDTHTRUNC */
 		app_data_i = $random;
+		app_len_i = KEEP_W;
 		/* verilator lint_on WIDTHTRUNC */
-		app_len_i = {KEEP_W{1'b1}};
 		set_last_tx(i*KEEP_W,l);
 		#10
 		assert(~$isunknown(phy_data_o));

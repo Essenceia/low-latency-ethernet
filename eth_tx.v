@@ -245,7 +245,12 @@ len_to_mask #(.LEN_W(LEN_W), .LEN_MAX(KEEP_W)
 	.len_i(app_len_i),
 	.mask_o(app_data_keep)
 );
-assign crc_data_len = {LEN_W{~app_last_i}} & app_len_i;
+
+/* verilator lint_off WIDTHTRUNC */
+/* verilator lint_off WIDTHEXPAND */
+assign crc_data_len = app_last_i? app_len_i : KEEP_W;
+/* verilator lint_on WIDTHEXPAND */
+/* verilator lint_on WIDTHTRUNC */
 
 crc #(.DATA_W(DATA_W),.CRC_W(MAC_CRC_W)
 )m_crc_tx(

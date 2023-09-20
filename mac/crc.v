@@ -181,7 +181,7 @@ end
 
 /* select next lfst based on number of valid bytes */
 always_comb begin
-	for(int i=0; i<KEEP_W; i++) begin
+	for(int i=0; i<KEEP_W; i++) begin : crc_lfsr_loop
 		/* verilator lint_off WIDTHEXPAND */
 		if( (i+1) == len_i )lfsr_next = lfsr_next_arr[i];
 		/* verilator lint_on WIDTHEXPAND */
