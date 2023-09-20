@@ -306,7 +306,6 @@ logic             crc_start_v;
 logic             crc_zero;
 logic             crc_err_v;
 logic [CRC_W-1:0]  crc;
-
 /* crc starts after preamble */
 assign crc_start_v = cnt_q == 8;
 /* crc test at the end of the packet 
@@ -320,6 +319,7 @@ m_crc(
 	.clk(clk),
 	.start_i(crc_start_v),
 	.valid_i(data_v),
+	.len_i('d2),/* TODO: correct len */
 	.data_i(data_i),
 	.crc_o(crc)
 );

@@ -218,20 +218,19 @@ assign end_head_v = head_cnt_q >= HEAD_N;
  * crc includes all information appart from itself
  * and the preamble bytes of the mac header */
 
-logic                 crc_data_lite_v; /* data to be accounted for in crc calculation */
-logic [KEEP_W-1:0]    crc_data_v; 
+logic                 crc_data_v; /* data to be accounted for in crc calculation */
 logic                 crc_start_v;
 logic [MAC_CRC_W-1:0] crc_raw;
 logic [KEEP_W-1:0]    app_data_keep;
 logic [DATA_W-1:0]    data_lite;
 logic [DATA_W-1:0]    crc_data;
+logic [LEN_W-1:0]     crc_data_len;
 
 /* exclude mac pre */
 assign crc_start_v = head_cnt_q == MAC_PRE_N;
 
-assign crc_data_lite_v = fsm_head_q & (head_cnt_q >= MAC_PRE_N)
-					   | fsm_data_q;
-assign crc_data_v = {KEEP_W{crc_data_lite_v}} & app_data_keep;
+assign crc_data_v = fsm_head_q & (head_cnt_q >= MAC_PRE_N)
+			      | fsm_data_q;
 /* TODO temporary solution until crc update : mask invalid data
  * using keep mask */
 genvar i;
@@ -246,13 +245,14 @@ len_to_mask #(.LEN_W(LEN_W), .LEN_MAX(KEEP_W)
 	.len_i(app_len_i),
 	.mask_o(app_data_keep)
 );
+assign crc_data_len = {LEN_W{~app_last_i}} & app_len_i;
 
-/* TODO : update crc block to support partial data bytes valid */
 crc #(.DATA_W(DATA_W),.CRC_W(MAC_CRC_W)
 )m_crc_tx(
 	.clk(clk),
-	.valid_i(crc_data_v[0]),
+	.valid_i(crc_data_v),
 	.start_i(crc_start_v),
+	.len_i(crc_data_len),
 	.data_i(crc_data),
 	.crc_o(crc_raw)
 );
