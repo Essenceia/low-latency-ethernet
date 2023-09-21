@@ -317,7 +317,7 @@ generate
 			assign crc_raw_shifted_arr[KEEP_W] = crc_raw;
 		end else begin
 			/* partial data bytes valid on last */
-			assign crc_raw_shifted_arr[i] = {{MAC_CRC_W-8*i{1'bx}},crc_raw[MAC_CRC_W-1-:8*i]};
+			assign crc_raw_shifted_arr[i] = {{8*i{1'bx}},crc_raw[MAC_CRC_W-1:8*i]};
 			assign data_last_crc_shifted_arr[i] = {crc_raw[8*i-1:0], {8*i{1'bx}}};
 		end
 	end	
@@ -327,7 +327,7 @@ always_comb begin: crc_shift_sel_mux
 	
 	for(int s=1; s<=KEEP_W; s++) begin 
 		/* verilator lint_off WIDTHEXPAND */
-		if ( s == foot_cnt_q[LEN_W-1:0]) crc_raw_shifted = crc_raw_shifted_arr[s];
+		if ( s == app_len_i ) crc_raw_shifted = crc_raw_shifted_arr[s];
 		if ( s == app_len_i ) data_last_crc_shifted = data_last_crc_shifted_arr[s];
 		/* verilator lint_on WIDTHEXPAND */
 	end
