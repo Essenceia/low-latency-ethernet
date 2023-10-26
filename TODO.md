@@ -17,3 +17,6 @@
 
 - tx:
     - move mac footer from eth tx to it's own module
+
+- tb:
+    - make C struct for packet types
