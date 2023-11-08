@@ -1,11 +1,9 @@
 /* TCP entry : manages 1 socket, 
  * contains socket lifetime fsm */
 module tcp_entry#(
-	parameter IP_W = 32, // IP address
-	parameter PORT_W = 16,
-	parameter SEQ_W = 32, // seq and ack number are the same size
- 	parameter FLAG_W = 8,
-	parameter SIZE_W = 16,
+	localparam SEQ_W = 32, // seq and ack number are the same size
+ 	localparam FLAG_W = 8,
+	localparam SIZE_W = 16,
 	/* flag index */
 	localparam CWR_IDX = 0,
 	localparam ECE_IDX = 1,
@@ -22,19 +20,16 @@ module tcp_entry#(
 
 	/* init new entry */
 	input init_v_i,
-	input [IP_W-1:0]   init_ip_dst_i,
-	input [PORT_W-1:0] init_port_src_i,
-	input [PORT_W-1:0] init_port_dst_i,
 	input [SEQ_W-1:0]  init_seq_i,
+
+	/* close connection */
+	input close_v_i,
 
 	/* cancel signal */
 	input cancel_v_i,
 
 	/* entry is allocated */
 	output              valid_o,
-	output [IP_W-1:0]   ip_dst_o,
-	output [PORT_W-1:0] port_src_o,
-	output [PORT_W-1:0] port_dst_o,
 
 	/* received valid tcp header */
 	input              rec_v_i,
@@ -69,27 +64,8 @@ reg   est_wait_q;
 logic est_next;
 reg   est_q;
 
-/* entry data */
-/* port/ip addr */
-logic [IP_W-1:0] ip_dst_next;
-reg   [IP_W-1:0] ip_dst_q;
-logic [PORT_W-1:0] port_dst_next;
-logic [PORT_W-1:0] port_src_next;
-reg   [PORT_W-1:0] port_dst_q;
-reg   [PORT_W-1:0] port_src_q;
-
-assign ip_dst_next   = init_v_i ? init_ip_dst_i : ip_dst_q;
-assign port_src_next = init_v_i ? init_port_src_i: port_src_q;
-assign port_dst_next = init_v_i ? init_port_dst_i: port_dst_q;
-
-always @(posedge clk) begin
-	ip_dst_q   <= ip_dst_next;
-	port_dst_q <= port_dst_next;
-	port_src_q <= port_src_q;
-end
-
-
-/* sequence number
+/* entry data
+ * sequence number
  * increment sequence number by the number of data bytes sent */
 logic [SEQ_W-1:0] seq_next;
 reg   [SEQ_W-1:0] seq_q;
