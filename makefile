@@ -65,12 +65,12 @@ endif
 # Lint commands.
 ifeq ($(SIM),I)
 define LINT
-	mkdir build
+	mkdir -p build
 	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
 endef
 else
 define LINT
-	mkdir build
+	mkdir -p build
 	verilator --lint-only $(LINT_FLAGS) $1
 endef
 endif
@@ -98,12 +98,12 @@ endif
 # Build commands.
 ifeq ($(SIM),I)
 define BUILD
-	mkdir build
+	mkdir -p build
 	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
 endef
 else
 define BUILD
-	mkdir build
+	mkdir -p build
 	verilator --binary $(LINT_FLAGS) $(BUILD_FLAGS) -o $2 $1  
 endef
 endif
@@ -115,12 +115,12 @@ endif
 # Run commands.
 ifeq ($(SIM),I)
 define RUN
-	mkdir wave
+	mkdir -p wave
 	vvp $(BUILD_DIR)/$1
 endef
 else
 define RUN
-	mkdir wave
+	mkdir -p wave
 	./$(BUILD_DIR)/$1 $(if $(wave),+trace) 
 endef
 endif
