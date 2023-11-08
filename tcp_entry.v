@@ -43,26 +43,36 @@ module tcp_entry#(
 	input [SIZE_W-1:0] send_size_i,
 
 	/* request send of tcp packet */
-	output             force_send_v_o,
+	output             req_v_o,
 	/* header content for next tcp packet
  	 * validity is independant of force send */
-	output [FLAG_W-1:0] send_flag_o,
-	output [SEQ_W-1:0]  send_seq_o,
-	output [SEQ_W-1:0]  send_ack_o
+	output [FLAG_W-1:0] req_flag_o,
+	output [SEQ_W-1:0]  req_seq_o,
+	output [SEQ_W-1:0]  req_ack_o
 );
 /* FSM */
 logic init_v;
 logic cancel_v;
 logic invalid_next;
 reg   invalid_q;
-logic syn_wait_next;
-reg   syn_wait_q;
+logic syn_emit_next;
+reg   syn_emit_q;
 logic syn_sent_next;
 reg   syn_sent_q;
-logic est_wait_next;
-reg   est_wait_q;
+logic est_emit_next;
+reg   est_emit_q;
 logic est_next;
 reg   est_q;
+logic fin_wait_1_emit_next;
+reg   fin_wait_1_emit_q;
+logic fin_wait_1_next;
+reg   fin_wait_1_q;
+logic fin_wait_2_next;
+reg   fin_wait_2_q;
+logic time_wait_emit_next;
+reg   time_wait_emit_q;
+logic time_wait_next;
+reg   time_wait_q;
 
 /* entry data
  * sequence number
@@ -91,7 +101,7 @@ logic [SEQ_W-1:0] ack_add;
 logic             ack_en;
 
 assign { unused_ack_add, ack_add } = ack_q + rec_size_i;
-/* set ack to 0 by default on init: waiting for server ack */
+/* set ack to 0 by default on init: emiting for server ack */
 assign ack_next = {SEQ_W{~invalid_q}} & ack_add;
 assign ack_en   = init_v_i | rec_v_i;
   
@@ -100,11 +110,6 @@ always @(posedge clk) begin
 		ack_q      <= ack_next;
 	end
 end
-
-/* establish connection : wait for valid SYN+ACK */
-logic rec_syn_ack_v;
-assign rec_syn_ack_v = rec_v_i & rec_flag_i[SYN_IDX] & rec_flag_i[ACK_IDX]; 
-
 
 /* need to send ack for received packet once connection has been established */
 logic send_ack_v_next;
@@ -118,38 +123,56 @@ always @(posedge clk) begin
 	end
 end
 
+/* time wait timeout, TODO */
+logic timeout_wait;
+assign timeout_wait = 1'b1;
+
 /* force send 
  * used to trigger ACK 
 /* FSM 
+ * TODO : add maintenance and exit conditions for each fsm state
  * cancel, TODO: add timeout */
 assign cancel_v = cancel_v_i; 
-
-/* invalid */
 assign init_v = init_v_i & invalid_q & ~cancel_v;
-assign syn_wait_next = init_v;
-assign syn_sent_next = sent_v_i  & syn_wait_q;
-assign est_wait_next = rec_syn_ack_v & syn_sent_q;
-assign est_next      = sent_v_i & est_wait_q;
- 
+
+/* establish connection */
+assign syn_emit_next = init_v;
+assign syn_sent_next = sent_v_i  & syn_emit_q;
+assign est_emit_next = syn_sent_q
+					 & (rec_v_i & rec_flag_i[SYN_IDX] & rec_flag_i[ACK_IDX]);
+assign est_next      = sent_v_i & est_emit_q;
+
+/* close connection */
+assign fin_wait_1_emit_next = est_q & close_v_i; 
+assign fin_wait_1_next = fin_wait_1_emit_q & sent_v_i;
+assign fin_wait_2_next = fin_wait_1_q 
+                       & (rec_v_i & rec_flag_i[ACK_IDX]);
+assign time_wait_emit_next = fin_wait_2_q 
+						   & (rec_v_i & rec_flag_i[FIN_IDX]);
+assign time_wait_next = time_wait_emit_q & sent_v_i;
+  
+assign invalid_next = invalid_q & ~init_v_i
+					| time_wait_q & timeout_wait; 
+  
 always @(posedge clk) begin
 	if ( ~nreset ) begin
 		invalid_q  <= 1'b0;
-		syn_wait_q <= 1'b0;
+		syn_emit_q <= 1'b0;
 		syn_sent_q <= 1'b0;
-		est_wait_q <= 1'b0;
+		est_emit_q <= 1'b0;
 		est_q      <= 1'b0;
 	end else begin
 		invalid_q  <= invalid_next;
-		syn_wait_q <= syn_wait_next;
+		syn_emit_q <= syn_emit_next;
 		syn_sent_q <= syn_sent_next;
-		est_wait_q <= est_wait_next;
+		est_emit_q <= est_emit_next;
 		est_q      <= est_next;
 	end
 end
 
 `ifdef FORMAL
 logic [4:0] f_fsm;
-assign f_fsm = { invalid_q, syn_wait_q, syn_sent_q, est_wait_q, est_q };
+assign f_fsm = { invalid_q, syn_emit_q, syn_sent_q, est_emit_q, est_q };
 
 always begin
 	sva_fsm_onehot : assert( $onehot(f_fsm));
