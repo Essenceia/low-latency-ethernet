@@ -9,6 +9,8 @@ limiting the total logic depth, this implementation will not feature all `TCP` f
 
 Assumptions :
 
+- I can send an ack faster than I can receive new packets
+
 - No out of order packets 
 
 - Remote server address and port will never change

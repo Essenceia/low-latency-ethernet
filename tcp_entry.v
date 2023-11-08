@@ -43,7 +43,7 @@ module tcp_entry#(
 	input [SIZE_W-1:0] send_size_i,
 
 	/* request send of tcp packet */
-	output             req_v_o,
+	output              req_v_o,
 	/* header content for next tcp packet
  	 * validity is independant of force send */
 	output [FLAG_W-1:0] req_flag_o,
@@ -51,7 +51,6 @@ module tcp_entry#(
 	output [SEQ_W-1:0]  req_ack_o
 );
 /* FSM */
-logic init_v;
 logic cancel_v;
 logic invalid_next;
 reg   invalid_q;
@@ -111,17 +110,34 @@ always @(posedge clk) begin
 	end
 end
 
-/* need to send ack for received packet once connection has been established */
-logic send_ack_v_next;
-reg   send_ack_v_q;
-assign send_ack_v_next = rec_v_i & ( est_q ) ; // TODO add closing fsm states
-always @(posedge clk) begin
-	if ( ~nreset) begin
-		send_ack_v_q <= 1'b0;
-	end else begin
-		send_ack_v_q <= send_ack_v_next;
-	end
-end
+/* need to ack received packets */
+logic req_ack;
+assign req_ack = 1'b0;
+
+/* req flags */
+logic req_ack_flag;
+logic req_fin_flag;
+logic req_syn_flag;
+
+assign req_ack_flag = req_ack | est_emit_next | time_wait_emit_next;
+assign req_fin_flag = fin_wait_1_emit_next;
+assign req_syn_flag = syn_emit_next; 
+
+/* send emit request */
+logic req_fsm;
+assign req_fsm = syn_emit_next
+			   | est_emit_next 
+               | fin_wait_1_emit_next 
+               | time_wait_emit_next;
+assign req_v_o = req_fsm | req_ack;
+assign req_flag_o = { 1'b0, // CWR
+					  1'b0, // ECE
+					  1'b0, // URG
+					  req_ack_flag, // ACK
+					  1'b0, // PSH
+					  req_syn_flag, // SYN
+					  req_fin_flag  // FIN
+                    }; 
 
 /* time wait timeout, TODO */
 logic timeout_wait;
@@ -133,10 +149,9 @@ assign timeout_wait = 1'b1;
  * TODO : add maintenance and exit conditions for each fsm state
  * cancel, TODO: add timeout */
 assign cancel_v = cancel_v_i; 
-assign init_v = init_v_i & invalid_q & ~cancel_v;
 
 /* establish connection */
-assign syn_emit_next = init_v;
+assign syn_emit_next = init_v_i & invalid_q & ~cancel_v; 
 assign syn_sent_next = sent_v_i  & syn_emit_q;
 assign est_emit_next = syn_sent_q
 					 & (rec_v_i & rec_flag_i[SYN_IDX] & rec_flag_i[ACK_IDX]);
