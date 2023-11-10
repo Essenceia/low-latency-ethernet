@@ -20,3 +20,7 @@
 
 - tb:
     - make C struct for packet types
+
+- rtl:
+    - add cancel signals
+    - add start signals
