@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Low latency verilog ethernet for Nasdaq HFT FPGA
 
 RTL implementation of a low latency ethernet interface for the purposes of the HFT FPGA project.
@@ -55,6 +56,8 @@ Assumptions :
 
 ### TCP
 
+RTL implementation of a single socket `TCP` module.
+
 Features : 
 
 - IPv4
@@ -79,6 +82,11 @@ Assumptions :
 
 - Remote server address will never change 
 
+- I can send an ack faster than I can receive new packets
+
+- No packet segmentation
+ 
+
 ### Roadmap 
 
 Under developpement : 
@@ -97,5 +105,5 @@ Under developpement :
 
 - [ ] UDP
 
-- [ ] TCP
+- [x] TCP 16b
 

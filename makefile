@@ -68,10 +68,12 @@ endif
 # Lint commands.
 ifeq ($(SIM),I)
 define LINT
+	mkdir -p build
 	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
 endef
 else
 define LINT
+	mkdir -p build
 	verilator --lint-only $(LINT_FLAGS) $1
 endef
 endif
@@ -99,10 +101,12 @@ endif
 # Build commands.
 ifeq ($(SIM),I)
 define BUILD
+	mkdir -p build
 	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
 endef
 else
 define BUILD
+	mkdir -p build
 	verilator --binary $(LINT_FLAGS) $(BUILD_FLAGS) -o $2 $1  
 endef
 endif
@@ -114,10 +118,12 @@ endif
 # Run commands.
 ifeq ($(SIM),I)
 define RUN
+	mkdir -p wave
 	vvp $(BUILD_DIR)/$1
 endef
 else
 define RUN
+	mkdir -p wave
 	./$(BUILD_DIR)/$1 $(if $(wave),+trace) 
 endef
 endif
@@ -136,6 +142,7 @@ build:
 MAC_DIR = mac
 IP_DIR = ipv4
 UDP_DIR = udp
+TCP_DIR = tcp
 UTILS_DIR = ../utils
 
 crc_f := crc.v
@@ -143,12 +150,14 @@ mac_f :=crc.v mac_rx.v mac_head_tx.v $(crc_deps)
 ip_f := ipv4_rx.v ipv4_head_tx.v ip_addr_match.v
 udp_f := udp_head_tx.v udp_rx.v 
 utils_f := thermo_to_len.v len_to_mask.v
+tcp_f := tcp_entry.v
  
 # add dir names
 crc_deps := $(foreach x,$(crc_f),$(MAC_DIR)/$x) 
 mac_deps := $(foreach x,$(mac_f),$(MAC_DIR)/$x) 
 ip_deps := $(foreach x,$(ip_f),$(IP_DIR)/$x)
 udp_deps := $(foreach x,$(udp_f),$(UDP_DIR)/$x) 
+tcp_deps := $(foreach x,$(tcp_f),$(TCP_DIR)/$x) 
 utils_deps := $(foreach x,$(utils_f),$(UTILS_DIR)/$x)
 
 eth_deps := eth_rx.v eth_tx.v $(mac_deps) $(ip_deps) $(udp_deps) $(utils_deps)
@@ -165,6 +174,9 @@ lint_ip: $(ip_deps)
 lint_udp: $(udp_deps)
 	$(call LINT,$^,udp_rx)
 
+lint_tcp: $(tcp_deps)
+	$(call LINT,$^,tcp_entry)
+
 lint_eth: $(eth_deps)
 	$(call LINT,$^,eth_rx)
  
@@ -179,7 +191,6 @@ tbs := crc mac eth
 crc_deps :=crc32.v crc32_v2.v $(REF_DIR)/lfsr.v $(TB_DIR)/crc_tb.sv
 mac_deps +=crc.v mac_rx.v $(TB_DIR)/mac_tb.sv
 eth_deps += $(TB_DIR)/eth_tb.sv 
-
 
 # Standard run recipe to build a given testbench
 define build_recipe
