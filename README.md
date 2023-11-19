@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Low latency verilog ethernet for Nasdaq HFT FPGA
 
 RTL implementation of a low latency ethernet interface for the purposes of the HFT FPGA project.
