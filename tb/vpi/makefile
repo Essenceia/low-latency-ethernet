@@ -86,7 +86,7 @@ LD := $(LD_CMD) $(LD_FLAGS)
 # All headers that are accessible to .c/cpp files.
 # Any change in those will cause any required .o file to be rebuilt.
 #HDRS := pcs_gearbox.h pcs_defs.h pcs_enc.h pcs_marker.h pcs_tx.h
-#HDRS += $(VPI_DIR)/tb_pcs.h$(PP)
+HDRS += $(VPI_DIR)/tb_network.h$(PP)
 
 #########
 # Build #
@@ -94,14 +94,10 @@ LD := $(LD_CMD) $(LD_FLAGS)
 
 # General sources
 SRCS := test
-#SRCS += pcs_gearbox pcs_enc pcs_marker pcs_tx
-#SRCS += tb_rand tb_fifo tb_utils
-#SRCS += tb_marker_common tb_pcs_common
-#SRCS += 64b66b
-#SRCS += tv
+SRCs += tb_network
 
 # VPI sources
-VPI_SRCS := tb_marker
+VPI_SRCS := tb_network
 
 # Standard object file build recipe.
 define obj_recipe
@@ -130,12 +126,11 @@ $(eval $(foreach x,$(VPI_SRCS),$(call vpi_obj_recipe,$x)))
 # Dependencies for all tests. '.o'-s ommitted.
 #deps_all := tv pcs_gearbox pcs_enc 64b66b pcs_tx tb_fifo tb_rand $(40g_deps)
 
-deps_all := test
+deps_all := 
 
 # Test dependencies names. '.o'-s ommitted.
 test_deps_names := test $(deps_all) 
-tb_deps_names := tb_pcs tb_pcs_common tb_utils $(deps_all)
-tb_marker_deps_names := tb_marker tb_utils tb_marker_common tb_rand pcs_marker
+tb_deps_names := tb_network $(deps_all)
 
 # Dependencies generator.
 gen_deps = $(foreach x,$($(1)_deps_names),$(BUILD)/$x.o)
@@ -143,7 +138,6 @@ gen_deps = $(foreach x,$($(1)_deps_names),$(BUILD)/$x.o)
 # Dependencies.
 test_deps := $(call gen_deps,test)
 tb_deps := $(call gen_deps,tb)
-tb_marker_deps := $(call gen_deps,tb_marker)
 
 ###########
 # Targets #
@@ -159,14 +153,6 @@ $(BUILD)/tb_all.o: $(tb_deps)
 $(BUILD)/tb.vpi: $(BUILD)/tb_all.o
 	@mkdir -p $(@D)
 	$(LD) -shared -o $(BUILD)/tb.vpi $^ -lvpi
-
-$(BUILD)/tb_marker_all.o: $(tb_marker_deps)
-	@mkdir -p $(@D)
-	$(LD) -r -o $(BUILD)/tb_marker_all.o $^
-
-$(BUILD)/tb_marker.vpi: $(BUILD)/tb_marker_all.o
-	@mkdir -p $(@D)
-	$(LD) -shared -o $(BUILD)/tb_marker.vpi $^ -lvpi
 
 ####################
 # Standard targets #
