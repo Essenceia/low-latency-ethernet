@@ -1,0 +1,5 @@
+*.hex
+*.o
+build
+obj_dir
+test
