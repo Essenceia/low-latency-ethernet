@@ -17,6 +17,7 @@
 
 - tx:
     - move mac footer from eth tx to it's own module
+    - check if switch support IPG of zero, if not enforce IPG of >=96 ( 802.3 ) 
 
 - tb:
     - make C struct for packet types
@@ -24,3 +25,4 @@
 - rtl:
     - add cancel signals
     - add start signals
+

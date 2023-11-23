@@ -1,5 +1,10 @@
 /* Tx eth pipe */
 module eth_tx #(
+	/* set minimum interpacket gap to zero, will break
+     * 802.3 compatilibility and cause packet loss
+     * if other testing equipement doesn't also support
+     * a min IPG of 0 */
+	parameter IS_IPG_ZERO = 1,
 	/* configuration */
 	parameter UDP_CS = 0,
 	parameter VLAN_TAG = 1,
@@ -377,7 +382,6 @@ assign data = {DATA_W{fsm_head_q}} & head_q[DATA_W-1:0]
 		    | {DATA_W{fsm_foot_q}} & data_foot; 
 
 /* FSM */
-
 assign fsm_idle_next = app_cancel_i
 				     | fsm_idle_q & ~app_early_v_i
 					 | fsm_foot_q & end_foot_v;

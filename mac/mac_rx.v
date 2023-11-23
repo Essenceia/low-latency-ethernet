@@ -1,3 +1,4 @@
+/* MAC RX module */
 module mac_rx #(
 	parameter IS_10G = 1,
 	/* mac supports vlan tagging */
@@ -351,4 +352,15 @@ end
 
 /* output */
 assign crc_err_o = crc_err_v;
+
+`ifdef FORMAL
+logic [2:0] f_fsm;
+assign f_fsm = { fsm_invalid_q, fsm_head_q, fsm_data_q };
+
+always @(posedge clk) begin
+	if(nreset)begin
+		sva_fsm_onehot: assert($onehot(f_fsm));	
+	end
+end
+`endif
 endmodule
