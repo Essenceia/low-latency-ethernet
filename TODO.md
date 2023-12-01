@@ -20,7 +20,11 @@
     - check if switch support IPG of zero, if not enforce IPG of >=96 ( 802.3 ) 
 
 - tb:
-    - make C struct for packet types
+    - cut packet into data width chunks
+    - re-write mac interface ( reuse the one on the phy ? )
+    - make a schematic to plan next work
+    - add fifo lib
+   
 
 - rtl:
     - add cancel signals
