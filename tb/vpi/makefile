@@ -86,7 +86,7 @@ LD := $(LD_CMD) $(LD_FLAGS)
 # All headers that are accessible to .c/cpp files.
 # Any change in those will cause any required .o file to be rebuilt.
 #HDRS := pcs_gearbox.h pcs_defs.h pcs_enc.h pcs_marker.h pcs_tx.h
-HDRS += $(VPI_DIR)/tb_network.h$(PP) mac_intf.h
+HDRS += $(VPI_DIR)/tb_network.h$(PP) mac_intf.h defs.h
 
 #########
 # Build #

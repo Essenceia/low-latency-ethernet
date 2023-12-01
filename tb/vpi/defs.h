@@ -1,6 +1,7 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#include <stdint.h>
 
 #define STR_(x) #x
 #define STR(x) STR_(x)
@@ -19,6 +20,6 @@
 /* rtl data width */
 #define DATA_WIDTH 16
 
-typedef data_t CAT3(uint,DATA_WIDTH,_t);
+typedef CAT3(uint,DATA_WIDTH,_t) data_t;
 
 #endif // DEFS_H
