@@ -29,7 +29,13 @@ int main(){
 		DEFAULT_SRC_PORT,
 		DEFAULT_DST_PORT,
 		false);
+	
+	printf("Start test\n");
+	
+	#ifdef DEBUG
+	/* print default packet */
 	print_eth_packet(node);
+	#endif 
 
 	/* fill packets and dump packet to file */
 	uint8_t data[PKT_LEN_MAX];
