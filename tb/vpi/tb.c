@@ -37,5 +37,9 @@ tb_s* init_tb(){
 
 void gen_new_pkt(tb_s *tb){
 
+	/* generate new packet */
+	uint8_t *pkt_data = write_eth_packet(
+			eth_packet_s* eth, size_t *len);
+
 }
 

@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include "defs.h"
+#include "inc/tb_all.h"
 
 #ifdef _40GBASE
 #if (DATA_WIDTH > 32)
@@ -56,6 +57,32 @@ void fill_mac_intf(
 	mac_intf_e state, 
 	data_t data,
 	uint8_t data_len
+);
+
+/* print */
+void print_mac_intf(
+	mac_intf_s * mac 
+);
+
+/* fifo */
+static void mac_fifo_dtor(
+	mac_intf_s *e
+) {
+	free(e);
+}
+static void mac_fifo_log(
+	mac_intf_s *e
+)
+{
+	#ifdef DEBUG
+	printf("Element %p :\n", e);
+	#endif
+}
+
+TB_FIFO_API(
+	mac_intf_s, 
+	&mac_fifo_dtor, 
+	&mac_fifo_log
 );
 
 

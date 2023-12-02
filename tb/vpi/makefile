@@ -38,7 +38,7 @@ CC_DEFS +=$(if $(40GBASE), -D_40GBASE)
 # Libraries 
 INC_DIR := inc
 INC := -I$(INC_DIR)
-LIB :=-L $(INC_DIR) -leth
+LIB :=-L $(INC_DIR) -leth -lfifo
 
 # Link flags.
 LD_FLAGS := $(if $(debug),-g) 

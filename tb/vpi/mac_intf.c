@@ -73,11 +73,11 @@ void fill_mac_intf(
 				fprintf(stderr, "ERROR: missmatch MAC_INTT_TYPE\n");
 				assert(0);
 				break;
-		
 		}
-
 	}
-	
 }
 
+void print_mac_intf(mac_intf_s* mac){
+
+}
 
