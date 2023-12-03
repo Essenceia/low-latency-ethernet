@@ -70,6 +70,13 @@ uint8_t tb_rand_uint8_t(){
 	lfsr = LFSR(lfsr);
 	return (uint8_t) lfsr;
 }
+
+uint8_t tb_rand_uint16_t(){
+	LFSR_INIT;
+	lfsr = LFSR(lfsr);
+	return (uint16_t) lfsr;
+}
+
 void tb_rand_fill_packet(uint8_t * p, size_t len){
 	LFSR_INIT;
 	for(size_t i=0; i < len; i++){
