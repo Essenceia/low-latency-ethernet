@@ -1,18 +1,18 @@
 #ifndef TB_H
 #define TB_H
+#include "inc/eth.h"
 #include "mac_intf.h"
-
-#define NODE_CNT 5
+#include "trans_data.h"
 
 /* Common tb interface */
 typedef struct{
-	eth_packet_s *eth;// packet generator, sender nodes 
+	eth_packet_s *eth[NODE_CNT];// packet generator, sender nodes 
 
 	/* mac rx interface */
-	mac_intf_fifo *mac_fifo;
+	mac_intf_s_fifo *mac_fifo;
 
 	/* output of transport data */
-	trans_data_fifo *data_fifo;
+	trans_data_s_fifo *data_fifo;
 }tb_s;
 
 /* init tb */

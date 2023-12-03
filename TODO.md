@@ -23,8 +23,7 @@
     - cut packet into data width chunks
     - re-write mac interface ( reuse the one on the phy ? )
     - make a schematic to plan next work
-    - add fifo lib
-   
+    - move tb\_rand into utils lib 
 
 - rtl:
     - add cancel signals

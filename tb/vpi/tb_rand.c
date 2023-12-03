@@ -8,7 +8,6 @@
 #include "tb_rand.h"
 
 #include <stdlib.h>
-#include "tb_config.h"
 #include "defs.h"
 #include <stdbool.h>
 
@@ -33,19 +32,24 @@ uint16_t tb_rand_get_packet_len(){
 	return rand_cnt;
 }
 
-
-uint16_t tb_rand_packet_idle_cntdown(){
-	LFSR_INIT;
-	lfsr = LFSR(lfsr);
-	return ( lfsr % (PACKET_IDLE_CNT_MAX-PACKET_IDLE_CNT_MIN )) + PACKET_IDLE_CNT_MIN;
-}
-
 uint64_t tb_rand_uint64_t(){
 	uint64_t r = 0;
 	LFSR_INIT;
 	for( int i=0; i<4; i++){
 		lfsr = LFSR(lfsr);
 		r |= (uint64_t)lfsr << 16*i;
+	}
+	return r;
+}
+
+uint8_t* tb_rand_uint48_t(){
+	uint8_t *r;
+	r = malloc(sizeof(uint8_t)*6);
+	LFSR_INIT;
+	for( int i=0; i<6; i++){
+		if(i%2==0)
+			lfsr = LFSR(lfsr);
+		r[i] = (uint8_t)lfsr << 8*(i%2);
 	}
 	return r;
 }
@@ -73,4 +77,7 @@ void tb_rand_fill_packet(uint8_t * p, size_t len){
 		p[i] = (uint8_t) lfsr;
 	}
 }
+
+
+
 

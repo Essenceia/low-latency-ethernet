@@ -13,4 +13,15 @@
 
 typedef CAT3(uint,DATA_WIDTH,_t) data_t;
 
+#define NODE_CNT 5
+
+/* VLAN */
+#define DEFAULT_HAS_VLAN true
+
+
+/* PACKET LEN */
+#define PACKET_LEN_MAX 1500
+#define PACKET_LEN_MIN 50
+
+
 #endif // DEFS_H

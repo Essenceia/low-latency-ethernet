@@ -1,7 +1,6 @@
 #include "tb.h"
-#include "eth.h"
-#include "dump.h"
-#include "defs.h"
+#include "inc/dump.h"
+#include "inc/eth_defs.h"
 
 #define RAND_MAC { \ 
 	tb_rand_uint8_t(),tb_rand_uint8_t(),\
@@ -13,7 +12,7 @@ static tb_s* tb_p = NULL;
 /* init function */
 tb_s* init_tb(){
 	/* init tb struct */
-	tb_p = malloc(sizeof(tb_s));
+	tb_p = malloc(sizeof(tb_s*));
 	tb_p->eth[0] = init_eth_packet(
 			DEFAULT_DST_MAC,
 			DEFAULT_SRC_MAC,
@@ -23,23 +22,38 @@ tb_s* init_tb(){
 			DEFAULT_DST_PORT,
 			DEFAULT_HAS_VLAN);	
 	for(int i=0; i<NODE_CNT; i++){
+		uint8_t *mac_dst = tb_rand_uint48_t();
+		uint8_t *mac_src = tb_rand_uint48_t();
 		tb_p->eth[i] = init_eth_packet(
-			RAND_MAC,
-			RAND_MAC,
+			mac_dst,
+			mac_src,
 			tb_rand_uint64_t(),
 			tb_rand_uint64_t(),
 			tb_rand_uint32_t(),
 			tb_rand_uint32_t(),
 			tb_rand_uint8_t()%2);	
+		free(mac_dst);
+		free(mac_src);
 	}
- 
+	/* fifo */
+	tb_p->mac_fifo = mac_intf_s_fifo_ctor();
+	tb_p->data_fifo = trans_data_s_fifo_ctor();
+
+	return tb_p; 
 }
 
-void gen_new_pkt(tb_s *tb){
+void gen_new_pkt(
+	tb_s *tb,
+	size_t node_id	
+){
+
+	size_t len;
+	assert(node_id <= NODE_CNT);
 
 	/* generate new packet */
 	uint8_t *pkt_data = write_eth_packet(
-			eth_packet_s* eth, size_t *len);
+			tb->eth[node_id],
+			 &len);
 
 }
 

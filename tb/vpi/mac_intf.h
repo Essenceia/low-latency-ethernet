@@ -51,6 +51,13 @@ typedef enum {
 	MAC_DATA
 }mac_intf_e ;
 
+/* init and fill struct */
+mac_intf_s *init_mac_inft(
+	mac_intf_e state, 
+	data_t data,
+	uint8_t data_len
+);
+
 /* fill structure */
 void fill_mac_intf(
 	mac_intf_s *mac, 

@@ -86,14 +86,16 @@ LD := $(LD_CMD) $(LD_FLAGS)
 # All headers that are accessible to .c/cpp files.
 # Any change in those will cause any required .o file to be rebuilt.
 #HDRS := pcs_gearbox.h pcs_defs.h pcs_enc.h pcs_marker.h pcs_tx.h
-HDRS += $(VPI_DIR)/tb_network.h$(PP) mac_intf.h defs.h
+HDRS += $(VPI_DIR)/tb_network.h$(PP) 
+HDRS += tb_rand.h mac_intf.h defs.h trans_data.h 
+HDRS += tb.h
 
 #########
 # Build #
 #########
 
 # General sources
-SRCS := test mac_intf
+SRCS := test tb tb_rand mac_intf trans_data
 SRCs += tb_network
 
 # VPI sources
@@ -126,7 +128,7 @@ $(eval $(foreach x,$(VPI_SRCS),$(call vpi_obj_recipe,$x)))
 # Dependencies for all tests. '.o'-s ommitted.
 #deps_all := tv pcs_gearbox pcs_enc 64b66b pcs_tx tb_fifo tb_rand $(40g_deps)
 
-deps_all := 
+deps_all :=mac_intf trans_data
 
 # Test dependencies names. '.o'-s ommitted.
 test_deps_names := test $(deps_all) 

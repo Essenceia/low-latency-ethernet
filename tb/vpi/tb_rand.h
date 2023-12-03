@@ -23,9 +23,9 @@ uint16_t tb_rand_get_lfsr();
 
 uint16_t tb_rand_get_packet_len();
 
-uint16_t tb_rand_packet_idle_cntdown();
-
 uint64_t tb_rand_uint64_t();
+
+uint8_t* tb_rand_uint48_t();
 
 uint32_t tb_rand_uint32_t();
 
