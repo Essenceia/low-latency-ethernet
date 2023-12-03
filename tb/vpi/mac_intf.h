@@ -74,9 +74,7 @@ static void mac_fifo_log(
 	mac_intf_s *e
 )
 {
-	#ifdef DEBUG
-	printf("Element %p :\n", e);
-	#endif
+	print_mac_intf(e);
 }
 
 TB_FIFO_API(

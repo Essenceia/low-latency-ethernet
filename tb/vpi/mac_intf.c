@@ -16,6 +16,7 @@ void fill_mac_intf(
 		mac->valid = true;
 		mac->data = data;
 		mac->len = data_len;
+		mac->ctrl = true;
 		switch(state){
 			case MAC_START: 
 				mac->start = true;
@@ -67,7 +68,10 @@ void fill_mac_intf(
 			case MAC_ERROR:
 				mac->cancel = true;
 				break;
-			case MAC_DATA: break;
+			case MAC_DATA:
+				/* unset ctrl, set by default as true expect for data */
+				mac->ctrl = false;
+				 break;
 			case MAC_INVALID : break;
 			default:
 				fprintf(stderr, "ERROR: missmatch MAC_INTT_TYPE\n");
@@ -78,6 +82,27 @@ void fill_mac_intf(
 }
 
 void print_mac_intf(mac_intf_s* mac){
-
+	assert(mac);
+	printf("mac inft: ");
+	if(mac->valid){
+			if(mac->start)
+				printf("start");
+			#ifdef MAC_INTF_START_2
+			if(mac->start_2)
+				printf("start_2");
+			#endif
+			if(mac->idle)
+				printf("idle");
+			if(mac->term)
+				printf("term");
+			if(mac->cancel)
+				printf("cancel ");
+			if(!mac->ctrl)
+				printf("data");
+		printf(", %u, 0x%0*x",mac->len, DATA_WIDTH/8,  mac->data);
+	}else{
+		printf("invalid");
+	}
+	printf("\n");
 }
 
