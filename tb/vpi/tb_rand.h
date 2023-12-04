@@ -29,6 +29,8 @@ uint8_t* tb_rand_uint48_t();
 
 uint32_t tb_rand_uint32_t();
 
+uint16_t tb_rand_uint16_t();
+
 uint8_t tb_rand_uint8_t();
 
 void tb_rand_fill_packet(uint8_t * p, size_t len);

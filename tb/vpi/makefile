@@ -1,4 +1,3 @@
-
 ################
 # Sanitization #
 ################
@@ -21,6 +20,15 @@ SIM ?= I
 $(info Using simulator: $(SIM))
 
 ###########
+# Config #
+###########
+
+# enable wireshare network transaction dump
+ifndef wireshark
+wireshare:=
+endif
+
+###########
 # Globals #
 ###########
 
@@ -34,6 +42,7 @@ CC_FLAGS += $(if $(debug),-g)
 # Compilation defines.
 CC_DEFS := $(if $(debug),-DDEBUG) 
 CC_DEFS +=$(if $(40GBASE), -D_40GBASE)
+CC_DEFS += $(if $(wireshark), -DWIRESHARK)
 
 # Libraries 
 INC_DIR := inc
@@ -128,7 +137,7 @@ $(eval $(foreach x,$(VPI_SRCS),$(call vpi_obj_recipe,$x)))
 # Dependencies for all tests. '.o'-s ommitted.
 #deps_all := tv pcs_gearbox pcs_enc 64b66b pcs_tx tb_fifo tb_rand $(40g_deps)
 
-deps_all :=mac_intf trans_data
+deps_all :=tb tb_rand mac_intf trans_data
 
 # Test dependencies names. '.o'-s ommitted.
 test_deps_names := test $(deps_all) 

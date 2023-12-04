@@ -2,18 +2,17 @@
 #include "inc/dump.h"
 #include "inc/eth_defs.h"
 #include "tb_rand.h"
+#include "inc/dump.h"
 
 #define RAND_MAC { \ 
 	tb_rand_uint8_t(),tb_rand_uint8_t(),\
 	tb_rand_uint8_t(),tb_rand_uint8_t(),\
 	tb_rand_uint8_t(),tb_rand_uint8_t() }
 
-static tb_s* tb_p = NULL;
-
 /* init function */
 tb_s* init_tb(){
 	/* init tb struct */
-	tb_p = malloc(sizeof(tb_s*));
+	tb_s *tb_p = malloc(sizeof(tb_s*));
 	tb_p->eth[0] = init_eth_packet(
 			DEFAULT_DST_MAC,
 			DEFAULT_SRC_MAC,
@@ -67,7 +66,33 @@ void gen_new_pkt(
 			tb->eth[node_id],
 			 &len);
 
+	#ifdef WIRESHARK
+	/* dump to wireshark */
+	dump_eth_packet(
+		pkt_data,
+		len,
+		true);
+	#endif
+
 	free(data);
+	free(pkt_data);
 
 }
 
+void free_tb(tb_s *tb){
+
+	for(int i=0; i<NODE_CNT; i++){
+		assert(tb->eth[i]);
+		free_eth_packet(tb->eth[i]);
+	}
+	/* delete fifo's */
+	assert(tb->mac_fifo);
+	mac_intf_s_fifo_dtor(tb->mac_fifo);
+	assert(tb->data_fifo);
+	trans_data_s_fifo_dtor(tb->data_fifo);
+	
+	#ifdef WIRESHARK
+	close_dump();
+	#endif	
+
+};

@@ -71,7 +71,7 @@ uint8_t tb_rand_uint8_t(){
 	return (uint8_t) lfsr;
 }
 
-uint8_t tb_rand_uint16_t(){
+uint16_t tb_rand_uint16_t(){
 	LFSR_INIT;
 	lfsr = LFSR(lfsr);
 	return (uint16_t) lfsr;
