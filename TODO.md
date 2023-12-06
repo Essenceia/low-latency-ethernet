@@ -26,6 +26,7 @@
     - move tb\_rand into utils lib 
 
 - rtl:
+    - add support for bubbles in data validity from PHY 
     - add cancel signals
     - add start signals
 

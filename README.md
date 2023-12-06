@@ -51,7 +51,7 @@ Features :
 
 Assumptions : 
 
-- UDP data provider will transmit data without holes or bubbles 
+- UDP data provider will potencially transmit data with bubbles, valid signal will be provided
 
 ### TCP
 
