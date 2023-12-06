@@ -18,6 +18,9 @@ int main(){
 	tb = init_tb();
 
 	gen_new_pkt(tb, 0);
+
+	/* print mac interface fifo */
+	mac_intf_s_fifo_log(tb->mac_fifo);
 	
 	free_tb(tb);
 	

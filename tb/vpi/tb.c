@@ -4,7 +4,7 @@
 #include "tb_rand.h"
 #include "inc/dump.h"
 
-#define RAND_MAC { \ 
+#define RAND_MAC {\ 
 	tb_rand_uint8_t(),tb_rand_uint8_t(),\
 	tb_rand_uint8_t(),tb_rand_uint8_t(),\
 	tb_rand_uint8_t(),tb_rand_uint8_t() }
@@ -12,7 +12,7 @@
 /* init function */
 tb_s* init_tb(){
 	/* init tb struct */
-	tb_s *tb_p = malloc(sizeof(tb_s*));
+	tb_s *tb_p = malloc(sizeof(tb_s));
 	tb_p->eth[0] = init_eth_packet(
 			DEFAULT_DST_MAC,
 			DEFAULT_SRC_MAC,
@@ -21,7 +21,7 @@ tb_s* init_tb(){
 			DEFAULT_SRC_PORT,
 			DEFAULT_DST_PORT,
 			DEFAULT_HAS_VLAN);	
-	for(int i=0; i<NODE_CNT; i++){
+	for(int i=1; i<NODE_CNT; i++){
 		uint8_t *mac_dst = tb_rand_uint48_t();
 		uint8_t *mac_src = tb_rand_uint48_t();
 		tb_p->eth[i] = init_eth_packet(
@@ -65,22 +65,89 @@ void gen_new_pkt(
 	uint8_t *pkt_data = write_eth_packet(
 			tb->eth[node_id],
 			 &len);
-	#ifdef WIRESHARK
+
 	
 	/* segment packet */
 	size_t pos = 0;
+	uint8_t seg_len;
 	/* start */
 	data_t seg = get_nxt_pkt_seg(
 		pkt_data,
 		&pos,
+		&seg_len,
 		len);
+	
 	// TODO allow randomly starting on start 2 if supported
-	mac_intf_s *mi = init_mac_intf(
-		MAC_START,
-		seg,
-		pos);
+	mac_intf_s_fifo_push(tb->mac_fifo,
+		init_mac_intf(
+			MAC_START,
+			seg,
+			DATA_WIDTH_BYTE));
+	
+	info("pos/len %d/%d\n", pos+DATA_WIDTH_BYTE , len);		
+	/* send data until term */
+	while(pos+DATA_WIDTH_BYTE > len){
+		info("pos/len %d/%d\n", pos, len);
+	
+		seg = get_nxt_pkt_seg(
+		pkt_data,
+		&pos,
+		&seg_len,
+		len);
+	
+		mac_intf_s_fifo_push(
+			tb->mac_fifo,
+			init_mac_intf(
+				MAC_DATA,
+				seg,
+				seg_len));
 			
+	}
+	info("last packet\n");
 
+	/* term */
+	seg = get_nxt_pkt_seg(
+		pkt_data,
+		&pos,
+		&seg_len,
+		len);
+	mac_intf_s_fifo_push(tb->mac_fifo,
+		init_mac_intf(
+			get_mac_term(seg_len),
+			seg,
+			seg_len));
+	/* append idle cycles if the last valid transfer wasn't on the
+ 	 * same cycle as the end of the PHY block
+ 	 * eg : 
+ 	 * 	X - valid byte
+ 	 * 	_ - invalid byte
+ 	 * let DATA_WIDTH_BYTE = 2, and the PHY block 8
+ 	 * mac interface values over time for data_len % 8 == 3 :
+ 	 * | XX
+ 	 * | X_
+ 	 * | __ inserted idle interface transaction 1
+ 	 * | __ inserted idle interface transaction 2
+ 	 * v t 	
+ 	 *
+	 * mac interface values over time for data_len % 8 == 7 :
+ 	 * | XX
+ 	 * | XX
+ 	 * | XX
+ 	 * | X_
+ 	 * v t 	
+ 	 * there is no need to insert an idle cycle in this case.
+ 	 */
+	int idle_cnt = (8 - ((int)pos)%8)/DATA_WIDTH_BYTE;
+	while(idle_cnt>0){
+		mac_intf_s_fifo_push(
+			tb->mac_fifo,
+			init_mac_intf(
+				MAC_IDLE,
+				0,
+				0));
+		idle_cnt -= DATA_WIDTH_BYTE;
+	}
+	#ifdef WIRESHARK
 	/* dump to wireshark */
 	dump_eth_packet(
 		pkt_data,
@@ -93,21 +160,29 @@ void gen_new_pkt(
 
 }
 
-static inline data_t get_nxt_pkt_seg(
+data_t get_nxt_pkt_seg(
 	uint8_t *pkt, 
 	size_t *pos,
+	uint8_t *seg_len,
 	const size_t len
 ){
 	assert(pkt);
 	assert(pos);
 	assert(len);
-	assert(pos < len);
+	assert(*pos < len);
 	data_t seg = 0;
+	*seg_len = 0;
 	size_t i;
-	for(i = 0; (i < (DATA_WIDTH/8)) && (*pos+i < len); i++){
+	for(i = 0; (i < DATA_WIDTH_BYTE) && (*pos+i < len); i++){
 		seg |= (data_t)pkt[*pos+i] << i*8;
 	}
+	*seg_len =(uint8_t) i;
 	*pos += i;
+
+	#ifdef DEBUG
+	printf("pos %d\n",*pos);
+	#endif
+
 	return seg;
 }
 

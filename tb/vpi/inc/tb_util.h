@@ -1,6 +1,18 @@
 #ifndef TB_UTILS_H
 #define TB_UTILS_H
+#include <stdio.h>
 
+
+/***********
+ * Logging *
+ ***********/
+
+#ifdef DEBUG
+#define info(...) printf(__VA_ARGS__)
+#else
+#define info(...)
+#endif
+ 
 /*****************
  * Concatenation *
  *****************/

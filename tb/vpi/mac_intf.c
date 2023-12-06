@@ -89,6 +89,10 @@ void fill_mac_intf(
 				break;
 		}
 	}
+	#ifdef DEBUG
+	printf("Set mac, state %d :\n",state );
+	print_mac_intf(mac);
+	#endif
 }
 
 void print_mac_intf(mac_intf_s* mac){

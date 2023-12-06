@@ -90,5 +90,8 @@ TB_FIFO_API(
 	&mac_fifo_log
 );
 
-
+/* get correct term based on length of the remaining data */
+static inline mac_intf_e get_mac_term(size_t data_len){
+	return (mac_intf_e)(MAC_TERM_0 + data_len);
+}
 #endif // MAC_INTF_H

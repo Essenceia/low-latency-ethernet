@@ -165,6 +165,13 @@ $(BUILD)/tb.vpi: $(BUILD)/tb_all.o
 	@mkdir -p $(@D)
 	$(LD) -shared -o $(BUILD)/tb.vpi $^ -lvpi
 
+#########
+# Debug #
+#########
+
+valgrind:test
+	valgrind ./test	
+
 ####################
 # Standard targets #
 ####################

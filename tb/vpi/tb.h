@@ -29,9 +29,10 @@ void free_tb(tb_s* tb_ptr);
 /* segment packet
  * get next packet segment whose size depends on the hw system data width, 
  * derements len */
-static inline data_t get_nxt_pkt_seg(
+data_t get_nxt_pkt_seg(
 	uint8_t *pkt,
-	size_t *pos, 
+	size_t *pos,
+	uint8_t *seg_len, 
 	const size_t len);
 
 #endif // TB_H

@@ -8,8 +8,9 @@
 #define VMODULE CAT2(V,MODULE)
 #define MODULE_SIG_STR(x) STR(CAT3(TOP.,MODULE,.)x)
 
-/* rtl data width */
+/* rtl data width, expressed in bits by default */
 #define DATA_WIDTH 16
+#define DATA_WIDTH_BYTE (DATA_WIDTH/8)
 
 typedef CAT3(uint,DATA_WIDTH,_t) data_t;
 
