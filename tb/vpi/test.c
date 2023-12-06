@@ -12,7 +12,6 @@
 #include "tb.h"
 
 int main(){
-	
 	printf("Start test\n");
 
 	tb_s *tb; 

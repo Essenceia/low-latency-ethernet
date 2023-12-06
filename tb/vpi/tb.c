@@ -65,8 +65,22 @@ void gen_new_pkt(
 	uint8_t *pkt_data = write_eth_packet(
 			tb->eth[node_id],
 			 &len);
-
 	#ifdef WIRESHARK
+	
+	/* segment packet */
+	size_t pos = 0;
+	/* start */
+	data_t seg = get_nxt_pkt_seg(
+		pkt_data,
+		&pos,
+		len);
+	// TODO allow randomly starting on start 2 if supported
+	mac_intf_s *mi = init_mac_intf(
+		MAC_START,
+		seg,
+		pos);
+			
+
 	/* dump to wireshark */
 	dump_eth_packet(
 		pkt_data,
@@ -78,6 +92,25 @@ void gen_new_pkt(
 	free(pkt_data);
 
 }
+
+static inline data_t get_nxt_pkt_seg(
+	uint8_t *pkt, 
+	size_t *pos,
+	const size_t len
+){
+	assert(pkt);
+	assert(pos);
+	assert(len);
+	assert(pos < len);
+	data_t seg = 0;
+	size_t i;
+	for(i = 0; (i < (DATA_WIDTH/8)) && (*pos+i < len); i++){
+		seg |= (data_t)pkt[*pos+i] << i*8;
+	}
+	*pos += i;
+	return seg;
+}
+
 
 void free_tb(tb_s *tb){
 

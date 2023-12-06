@@ -3,6 +3,16 @@
 #include <assert.h>
 #include <string.h>
 
+mac_intf_s *init_mac_intf(
+	mac_intf_e state, 
+	data_t data,
+	uint8_t data_len
+){
+	mac_intf_s *ret = (mac_intf_s*)malloc(sizeof(mac_intf_s));
+	fill_mac_intf(ret, state, data, data_len);
+	return ret;		
+}
+
 void fill_mac_intf(
 	mac_intf_s *mac, 
 	mac_intf_e state, 

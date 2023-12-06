@@ -26,4 +26,12 @@ mac_intf_s *get_next_mac_intf(tb_s* tb);
 
 void free_tb(tb_s* tb_ptr);
 
+/* segment packet
+ * get next packet segment whose size depends on the hw system data width, 
+ * derements len */
+static inline data_t get_nxt_pkt_seg(
+	uint8_t *pkt,
+	size_t *pos, 
+	const size_t len);
+
 #endif // TB_H
