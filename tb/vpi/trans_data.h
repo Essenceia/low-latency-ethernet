@@ -4,15 +4,24 @@
 #include "defs.h"
 #include "inc/tb_all.h"
 
+typedef enum{
+	TRANS_DATA_INVALID,
+	TRANS_DATA_DATA,
+	TRANS_DATA_START,
+	TRANS_DATA_TERM
+}trans_data_state_e;
+
 /* transport layer data structure */
 typedef struct{
 	uint8_t len;
 	data_t data;
+	trans_data_state_e state;
 }trans_data_s;
 
 trans_data_s *init_trans_data(
 	uint8_t len,
-	data_t data
+	data_t data,
+	trans_data_state_e state
 );
 
 void print_trans_data(

@@ -31,11 +31,15 @@ typedef struct{
 	mac_foot_s *mac_foot;
 }eth_packet_s;
 
+/* check if transport layer is UDP */
 bool is_udp(eth_packet_s *eth);
-
+ 
 eth_packet_s * read_eth_packet(uint8_t *buff, size_t len);
+
 uint8_t *write_eth_packet(eth_packet_s* eth, size_t *len);
 
+/* get packet header length, used to determine transport data offset */
+size_t get_head_len(eth_packet_s *eth);
 
 /* constructors with default values
  * protocol : code of the transport protocol*/

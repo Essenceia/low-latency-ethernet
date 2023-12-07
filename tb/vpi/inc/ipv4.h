@@ -52,6 +52,9 @@ uint16_t calculate_ipv4_header_checksum(ipv4_head_s *head);
 /* print struct */
 void print_ipv4_head(ipv4_head_s *head);
 
+/* head head len */
+size_t get_ipv4_head_len(ipv4_head_s* head);
+
 /* print ipv4 address */
 static inline void print_ipv4_addr(const uint32_t addr){
 	printf("%u.%u.%u.%u",

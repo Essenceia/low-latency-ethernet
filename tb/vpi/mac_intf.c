@@ -81,7 +81,7 @@ void fill_mac_intf(
 			case MAC_DATA:
 				/* unset ctrl, set by default as true expect for data */
 				mac->ctrl = false;
-				 break;
+				break;
 			case MAC_INVALID : break;
 			default:
 				fprintf(stderr, "ERROR: missmatch MAC_INTT_TYPE\n");

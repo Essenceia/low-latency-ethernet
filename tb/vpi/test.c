@@ -21,6 +21,11 @@ int main(){
 
 	/* print mac interface fifo */
 	mac_intf_s_fifo_log(tb->mac_fifo);
+
+	/* print trans data interface fifo */
+	trans_data_s_fifo_log(tb->data_fifo);
+	
+	info("finished building mac interface\n");
 	
 	free_tb(tb);
 	

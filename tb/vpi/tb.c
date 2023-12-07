@@ -47,27 +47,27 @@ void gen_new_pkt(
 	size_t node_id	
 ){
 
-	size_t len;
 	assert(node_id <= NODE_CNT);
 
 	/* create new rand packet, fill transport data*/
-	len = tb_rand_get_packet_len();
-	uint8_t *data = malloc(sizeof(uint8_t)*len);
-	tb_rand_fill_packet(data, len);
+	size_t data_len = tb_rand_get_packet_len();
+	uint8_t *data = malloc(sizeof(uint8_t)*data_len);
+	tb_rand_fill_packet(data, data_len);
 
 	/* update node packet content */
 	update_eth_packet_data(
 		tb->eth[node_id],
 		data,
-		len);
+		data_len);
 
 	/* generate new packet */
+	size_t pkt_len;
 	uint8_t *pkt_data = write_eth_packet(
 			tb->eth[node_id],
-			 &len);
+			 &pkt_len);
 
-	
-	/* segment packet */
+	/* mac interface	
+	 * segment packet */
 	size_t pos = 0;
 	uint8_t seg_len;
 	/* start */
@@ -75,7 +75,7 @@ void gen_new_pkt(
 		pkt_data,
 		&pos,
 		&seg_len,
-		len);
+		pkt_len);
 	
 	// TODO allow randomly starting on start 2 if supported
 	mac_intf_s_fifo_push(tb->mac_fifo,
@@ -84,16 +84,16 @@ void gen_new_pkt(
 			seg,
 			DATA_WIDTH_BYTE));
 	
-	info("pos/len %d/%d\n", pos+DATA_WIDTH_BYTE , len);		
+	info("pos/pkt_len %ld/%ld\n", pos+DATA_WIDTH_BYTE , pkt_len);		
 	/* send data until term */
-	while(pos+DATA_WIDTH_BYTE > len){
-		info("pos/len %d/%d\n", pos, len);
+	while(pos+DATA_WIDTH_BYTE < pkt_len){
+		info("pos/pkt_len %ld/%ld\n", pos, pkt_len);
 	
 		seg = get_nxt_pkt_seg(
 		pkt_data,
 		&pos,
 		&seg_len,
-		len);
+		pkt_len);
 	
 		mac_intf_s_fifo_push(
 			tb->mac_fifo,
@@ -110,7 +110,7 @@ void gen_new_pkt(
 		pkt_data,
 		&pos,
 		&seg_len,
-		len);
+		pkt_len);
 	mac_intf_s_fifo_push(tb->mac_fifo,
 		init_mac_intf(
 			get_mac_term(seg_len),
@@ -147,11 +147,66 @@ void gen_new_pkt(
 				0));
 		idle_cnt -= DATA_WIDTH_BYTE;
 	}
+
+	/* transport data 
+ 	 * 
+ 	 * if node_id == 0, which is the only node with the accepted
+ 	 * mac/ip/port values, we expect the transport data to be driven
+ 	 * on the output of the transport layer.
+ 	 * Segement transport data and start adding it to fifo */
+	if (!node_id){
+		/* TODO: this version of the testbench is written for 
+	 	 * DATA_WIDTH == 16, we are guarantied that the transport
+	 	 * data will allways start at the begining of a bus payload
+	 	 * for width of 16 and 32 but,  this is not a guaranty for 
+	 	 * DATA_WIDTH == 64 .
+	 	 * Writing assertion of rember add support for this latter */
+		assert(DATA_WIDTH < 64 );
+
+		/* start */
+		pos = 0;
+		seg = get_nxt_pkt_seg(
+			data,
+			&pos,
+			&seg_len,
+			data_len);
+	
+		trans_data_s_fifo_push(tb->data_fifo,
+			init_trans_data(
+				DATA_WIDTH_BYTE,
+				seg,
+				TRANS_DATA_START));
+
+		/* data */
+		while(pos+1+DATA_WIDTH_BYTE < data_len){
+			seg = get_nxt_pkt_seg(
+				data,
+				&pos,
+				&seg_len,
+				data_len);
+			trans_data_s_fifo_push(tb->data_fifo,
+				init_trans_data(
+					DATA_WIDTH_BYTE,
+					seg,
+					TRANS_DATA_START));
+		}
+		/* term */
+		seg = get_nxt_pkt_seg(
+				data,
+				&pos,
+				&seg_len,
+				data_len);
+		trans_data_s_fifo_push(tb->data_fifo,
+			init_trans_data(
+				DATA_WIDTH_BYTE,
+				seg,
+				TRANS_DATA_TERM));	
+ 	}
 	#ifdef WIRESHARK
 	/* dump to wireshark */
 	dump_eth_packet(
 		pkt_data,
-		len,
+		pkt_len,
 		true);
 	#endif
 
@@ -179,9 +234,7 @@ data_t get_nxt_pkt_seg(
 	*seg_len =(uint8_t) i;
 	*pos += i;
 
-	#ifdef DEBUG
-	printf("pos %d\n",*pos);
-	#endif
+	info("pos %ld\n",*pos);
 
 	return seg;
 }

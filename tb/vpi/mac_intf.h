@@ -92,6 +92,9 @@ TB_FIFO_API(
 
 /* get correct term based on length of the remaining data */
 static inline mac_intf_e get_mac_term(size_t data_len){
+	/* at worst ( DATA_WIDTH == 64 ), term data_len should
+ 	 * never be more than 7 bytes */  
+	assert(data_len <= 7);
 	return (mac_intf_e)(MAC_TERM_0 + data_len);
 }
 #endif // MAC_INTF_H
