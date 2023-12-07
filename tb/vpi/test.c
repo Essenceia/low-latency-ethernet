@@ -9,25 +9,25 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdlib.h>
-#include "tb.h"
+#include "tv.h"
 
 int main(){
 	printf("Start test\n");
 
-	tb_s *tb; 
-	tb = init_tb();
+	tv_s *tv; 
+	tv = init_tv();
 
-	gen_new_pkt(tb, 0);
+	gen_new_pkt(tv, 0);
 
 	/* print mac interface fifo */
-	mac_intf_s_fifo_log(tb->mac_fifo);
+	mac_intf_s_fifo_log(tv->mac_fifo);
 
 	/* print trans data interface fifo */
-	trans_data_s_fifo_log(tb->data_fifo);
+	trans_data_s_fifo_log(tv->data_fifo);
 	
 	info("finished building mac interface\n");
 	
-	free_tb(tb);
+	free_tv(tv);
 	
 	printf("End of test\n");
 	return 0;

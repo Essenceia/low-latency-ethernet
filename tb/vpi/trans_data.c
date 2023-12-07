@@ -24,7 +24,7 @@ void print_trans_data(trans_data_s *t){
 				printf(" start");
 				break;
 			case TRANS_DATA_TERM:
-				printf(" end");
+				printf(" term");
 				break;
 			default: break;
 			}

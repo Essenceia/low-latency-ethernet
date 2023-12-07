@@ -97,14 +97,14 @@ LD := $(LD_CMD) $(LD_FLAGS)
 #HDRS := pcs_gearbox.h pcs_defs.h pcs_enc.h pcs_marker.h pcs_tx.h
 HDRS += $(VPI_DIR)/tb_network.h$(PP) 
 HDRS += tb_rand.h mac_intf.h defs.h trans_data.h 
-HDRS += tb.h
+HDRS += tv.h
 
 #########
 # Build #
 #########
 
 # General sources
-SRCS := test tb tb_rand mac_intf trans_data
+SRCS := test tv tb_rand mac_intf trans_data
 SRCs += tb_network
 
 # VPI sources
@@ -137,7 +137,7 @@ $(eval $(foreach x,$(VPI_SRCS),$(call vpi_obj_recipe,$x)))
 # Dependencies for all tests. '.o'-s ommitted.
 #deps_all := tv pcs_gearbox pcs_enc 64b66b pcs_tx tb_fifo tb_rand $(40g_deps)
 
-deps_all :=tb tb_rand mac_intf trans_data
+deps_all :=tv tb_rand mac_intf trans_data
 
 # Test dependencies names. '.o'-s ommitted.
 test_deps_names := test $(deps_all) 

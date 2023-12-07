@@ -1,4 +1,4 @@
-#include "tb.h"
+#include "tv.h"
 #include "inc/dump.h"
 #include "inc/eth_defs.h"
 #include "tb_rand.h"
@@ -10,10 +10,10 @@
 	tb_rand_uint8_t(),tb_rand_uint8_t() }
 
 /* init function */
-tb_s* init_tb(){
-	/* init tb struct */
-	tb_s *tb_p = malloc(sizeof(tb_s));
-	tb_p->eth[0] = init_eth_packet(
+tv_s* init_tv(){
+	/* init tv struct */
+	tv_s *tv_p = malloc(sizeof(tv_s));
+	tv_p->eth[0] = init_eth_packet(
 			DEFAULT_DST_MAC,
 			DEFAULT_SRC_MAC,
 			DEFAULT_SRC_IP,
@@ -24,7 +24,7 @@ tb_s* init_tb(){
 	for(int i=1; i<NODE_CNT; i++){
 		uint8_t *mac_dst = tb_rand_uint48_t();
 		uint8_t *mac_src = tb_rand_uint48_t();
-		tb_p->eth[i] = init_eth_packet(
+		tv_p->eth[i] = init_eth_packet(
 			mac_dst,
 			mac_src,
 			tb_rand_uint32_t(),
@@ -36,14 +36,14 @@ tb_s* init_tb(){
 		free(mac_src);
 	}
 	/* fifo */
-	tb_p->mac_fifo = mac_intf_s_fifo_ctor();
-	tb_p->data_fifo = trans_data_s_fifo_ctor();
+	tv_p->mac_fifo = mac_intf_s_fifo_ctor();
+	tv_p->data_fifo = trans_data_s_fifo_ctor();
 
-	return tb_p; 
+	return tv_p; 
 }
 
 void gen_new_pkt(
-	tb_s *tb,
+	tv_s *tv,
 	size_t node_id	
 ){
 
@@ -56,14 +56,14 @@ void gen_new_pkt(
 
 	/* update node packet content */
 	update_eth_packet_data(
-		tb->eth[node_id],
+		tv->eth[node_id],
 		data,
 		data_len);
 
 	/* generate new packet */
 	size_t pkt_len;
 	uint8_t *pkt_data = write_eth_packet(
-			tb->eth[node_id],
+			tv->eth[node_id],
 			 &pkt_len);
 
 	/* mac interface	
@@ -78,7 +78,7 @@ void gen_new_pkt(
 		pkt_len);
 	
 	// TODO allow randomly starting on start 2 if supported
-	mac_intf_s_fifo_push(tb->mac_fifo,
+	mac_intf_s_fifo_push(tv->mac_fifo,
 		init_mac_intf(
 			MAC_START,
 			seg,
@@ -96,7 +96,7 @@ void gen_new_pkt(
 		pkt_len);
 	
 		mac_intf_s_fifo_push(
-			tb->mac_fifo,
+			tv->mac_fifo,
 			init_mac_intf(
 				MAC_DATA,
 				seg,
@@ -111,7 +111,7 @@ void gen_new_pkt(
 		&pos,
 		&seg_len,
 		pkt_len);
-	mac_intf_s_fifo_push(tb->mac_fifo,
+	mac_intf_s_fifo_push(tv->mac_fifo,
 		init_mac_intf(
 			get_mac_term(seg_len),
 			seg,
@@ -140,7 +140,7 @@ void gen_new_pkt(
 	int idle_cnt = (8 - ((int)pos)%8)/DATA_WIDTH_BYTE;
 	while(idle_cnt>0){
 		mac_intf_s_fifo_push(
-			tb->mac_fifo,
+			tv->mac_fifo,
 			init_mac_intf(
 				MAC_IDLE,
 				0,
@@ -171,7 +171,7 @@ void gen_new_pkt(
 			&seg_len,
 			data_len);
 	
-		trans_data_s_fifo_push(tb->data_fifo,
+		trans_data_s_fifo_push(tv->data_fifo,
 			init_trans_data(
 				DATA_WIDTH_BYTE,
 				seg,
@@ -184,7 +184,7 @@ void gen_new_pkt(
 				&pos,
 				&seg_len,
 				data_len);
-			trans_data_s_fifo_push(tb->data_fifo,
+			trans_data_s_fifo_push(tv->data_fifo,
 				init_trans_data(
 					DATA_WIDTH_BYTE,
 					seg,
@@ -196,7 +196,7 @@ void gen_new_pkt(
 				&pos,
 				&seg_len,
 				data_len);
-		trans_data_s_fifo_push(tb->data_fifo,
+		trans_data_s_fifo_push(tv->data_fifo,
 			init_trans_data(
 				DATA_WIDTH_BYTE,
 				seg,
@@ -240,17 +240,17 @@ data_t get_nxt_pkt_seg(
 }
 
 
-void free_tb(tb_s *tb){
+void free_tv(tv_s *tv){
 
 	for(int i=0; i<NODE_CNT; i++){
-		assert(tb->eth[i]);
-		free_eth_packet(tb->eth[i]);
+		assert(tv->eth[i]);
+		free_eth_packet(tv->eth[i]);
 	}
 	/* delete fifo's */
-	assert(tb->mac_fifo);
-	mac_intf_s_fifo_dtor(tb->mac_fifo);
-	assert(tb->data_fifo);
-	trans_data_s_fifo_dtor(tb->data_fifo);
+	assert(tv->mac_fifo);
+	mac_intf_s_fifo_dtor(tv->mac_fifo);
+	assert(tv->data_fifo);
+	trans_data_s_fifo_dtor(tv->data_fifo);
 	
 	#ifdef WIRESHARK
 	close_dump();
