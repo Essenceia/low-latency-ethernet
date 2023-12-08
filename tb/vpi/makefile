@@ -163,7 +163,7 @@ $(BUILD)/tb_all.o: $(tb_deps)
 
 $(BUILD)/tb.vpi: $(BUILD)/tb_all.o
 	@mkdir -p $(@D)
-	$(LD) -shared -o $(BUILD)/tb.vpi $^ -lvpi
+	$(LD) -shared -o $(BUILD)/tb.vpi $^ -lvpi $(LIB)
 
 #########
 # Debug #

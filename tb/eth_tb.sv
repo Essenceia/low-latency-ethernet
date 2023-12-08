@@ -147,8 +147,10 @@ endtask
 initial begin
 	$dumpfile("wave/eth_tb.vcd");
 	$dumpvars(0, eth_tb);
+	$tb_init();
 	nreset = 1'b0;
 	#10
+	$tb_mac();
 	nreset = 1'b1;
 	mac_cancel_i = 1'b0;
 	mac_valid_i = 1'b0;
@@ -156,9 +158,11 @@ initial begin
 	set_tx_default();
 	set_rx_idle();
 	#10
+	$tb_mac();
 	send_simple_tx_data(19);
 	#300
-	
+
+	$tb_free();	
 	$display("Test finised");
 	$finish;		
 end

@@ -1,5 +1,7 @@
 *.hex
 *.o
+!vpi_i/**
+!vpi_v/**
 build
 obj_dir
 test

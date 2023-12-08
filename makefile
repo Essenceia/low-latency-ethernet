@@ -43,6 +43,7 @@ $(info Using simulator: $(SIM))
 
 # Global configs.
 TB_DIR := tb
+VPI_DIR := $(TB_DIR)/vpi
 REF_DIR := $(TB_DIR)/ref
 CONF := conf
 WAVE_DIR := wave
@@ -77,6 +78,39 @@ define LINT
 	verilator --lint-only $(LINT_FLAGS) $1
 endef
 endif
+
+#############
+# VPI build #
+#############
+
+# VPU Build variables
+ifeq ($(SIM),I)
+BUILD_VPI_DIR := build
+else
+BUILD_VPI_DIR := obj_vpi
+endif
+
+# VPI build commands.
+ifeq ($(SIM),I)
+define BUILD_VPI
+	# Manually invoke vpi to not polute dependancy list
+	@$(MAKE) -f makefile $3
+	# Same as normal build
+	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
+endef
+else
+define BUILD_VPI
+	@printf "\nVerilating vpi design and tb \n\n"
+	verilator -cc --exe --vpi --public-flat-rw --threads 1 $(LINT_FLAGS) $(BUILD_FLAGS) --top-module $2 -LDFLAGS "$(CWD)/$(VPI_DIR)/$(BUILD_VPI_DIR)/$4_all.o V$2__ALL.a" -o $2 $1
+	
+	@printf "\nMaking vpi shared object \n\n"
+	@$(MAKE) -f makefile $3
+	
+	@printf "\nInvoking generated makefile \n\n"
+	$(MAKE) -C $(BUILD_DIR) -j $(MAKE_THREADS) -f V$2.mk
+endef
+endif
+
 
 #########
 # Build #
@@ -118,13 +152,17 @@ endif
 # Run commands.
 ifeq ($(SIM),I)
 define RUN
-	mkdir -p wave
 	vvp $(BUILD_DIR)/$1
+endef
+define RUN_VPI
+	vvp -M $(VPI_DIR)/$(BUILD_VPI_DIR) -mtb $(BUILD_DIR)/$1
 endef
 else
 define RUN
-	mkdir -p wave
 	./$(BUILD_DIR)/$1 $(if $(wave),+trace) 
+endef
+define RUN_VPI
+	$(call RUN,$1)
 endef
 endif
 
@@ -160,7 +198,9 @@ udp_deps := $(foreach x,$(udp_f),$(UDP_DIR)/$x)
 tcp_deps := $(foreach x,$(tcp_f),$(TCP_DIR)/$x) 
 utils_deps := $(foreach x,$(utils_f),$(UTILS_DIR)/$x)
 
-eth_deps := eth_rx.v eth_tx.v $(mac_deps) $(ip_deps) $(udp_deps) $(utils_deps)
+eth_deps := eth_rx.v eth_tx.v 
+eth_deps += $(mac_deps) $(ip_deps) $(udp_deps) $(utils_deps)
+eth_deps += $(TB_DIR)/eth_tb.sv 
 
 lint_mac: $(mac_deps)
 	$(call LINT,$^,mac_rx)
@@ -185,12 +225,11 @@ lint_eth: $(eth_deps)
 #############
 
 # The list of testbenches.
-tbs := crc mac eth
+tbs := crc mac
 
 # Dependencies for each testbench
 crc_deps :=crc32.v crc32_v2.v $(REF_DIR)/lfsr.v $(TB_DIR)/crc_tb.sv
 mac_deps +=crc.v mac_rx.v $(TB_DIR)/mac_tb.sv
-eth_deps += $(TB_DIR)/eth_tb.sv 
 
 # Standard run recipe to build a given testbench
 define build_recipe
@@ -213,6 +252,23 @@ $(eval $(foreach x,$(tbs),$(call run_recipe,$x)))
 # Generate build recipes for each testbench.
 $(eval $(foreach x,$(tbs),$(call build_recipe,$x)))
 
+#################
+# VPI testbench #
+#################
+
+
+eth_tb : $(eth_deps) 
+	$(call BUILD_VPI,$^,$@,vpi,tb)
+
+# Run VPI
+run_eth_cmd := vvp -M $(VPI_DIR)/$(BUILD_VPI_DIR) -mtb $(BUILD_DIR)/eth_tb
+run_eth: eth_tb
+	$(call RUN_VPI,$^)
+
+vpi:
+	cd $(VPI_DIR) && $(MAKE) $(BUILD_VPI_DIR)/tb.vpi SIM=$(SIM) $(DEFINES) $(40GBASE_ARGS)
+
+
 ####################
 # Standard targets #
 ####################
@@ -224,4 +280,4 @@ clean:
 	rm -fr build/*
 	rm -fr obj_dir/*
 	rm -fr $(WAVE_DIR)/*
-
+	cd $(VPI_DIR) && $(MAKE) clean
