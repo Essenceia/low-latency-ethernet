@@ -71,51 +71,29 @@ void gen_new_pkt(
 	size_t pos = 0;
 	uint8_t seg_len;
 	/* start */
-	data_t seg = get_nxt_pkt_seg(
-		pkt_data,
-		&pos,
-		&seg_len,
-		pkt_len);
+	data_t seg = get_nxt_pkt_seg(pkt_data, &pos, &seg_len, pkt_len);
 	
 	// TODO allow randomly starting on start 2 if supported
-	mac_intf_s_fifo_push(tv->mac_fifo,
-		init_mac_intf(
-			MAC_START,
-			seg,
-			DATA_WIDTH_BYTE));
+	mac_intf_s *mac = init_mac_intf(MAC_START,seg,DATA_WIDTH_BYTE); 
+	mac_intf_s_fifo_push(tv->mac_fifo,mac);
 	
 	info("pos/pkt_len %ld/%ld\n", pos+DATA_WIDTH_BYTE , pkt_len);		
 	/* send data until term */
 	while(pos+DATA_WIDTH_BYTE < pkt_len){
 		info("pos/pkt_len %ld/%ld\n", pos, pkt_len);
 	
-		seg = get_nxt_pkt_seg(
-		pkt_data,
-		&pos,
-		&seg_len,
-		pkt_len);
-	
-		mac_intf_s_fifo_push(
-			tv->mac_fifo,
-			init_mac_intf(
-				MAC_DATA,
-				seg,
-				seg_len));
+		seg = get_nxt_pkt_seg(pkt_data,	&pos, &seg_len,	pkt_len);
+		fill_mac_intf(mac, MAC_DATA, seg, seg_len);	
+		mac_intf_s_fifo_push(tv->mac_fifo,mac);
 			
 	}
 	info("last packet\n");
 
 	/* term */
-	seg = get_nxt_pkt_seg(
-		pkt_data,
-		&pos,
-		&seg_len,
-		pkt_len);
-	mac_intf_s_fifo_push(tv->mac_fifo,
-		init_mac_intf(
-			get_mac_term(seg_len),
-			seg,
-			seg_len));
+	seg = get_nxt_pkt_seg(pkt_data,&pos,&seg_len,pkt_len);
+	fill_mac_intf(mac,get_mac_term(seg_len),seg,seg_len);
+	mac_intf_s_fifo_push(tv->mac_fifo,mac);
+
 	/* append idle cycles if the last valid transfer wasn't on the
  	 * same cycle as the end of the PHY block
  	 * eg : 
@@ -139,12 +117,8 @@ void gen_new_pkt(
  	 */
 	int idle_cnt = (8 - ((int)pos)%8)/DATA_WIDTH_BYTE;
 	while(idle_cnt>0){
-		mac_intf_s_fifo_push(
-			tv->mac_fifo,
-			init_mac_intf(
-				MAC_IDLE,
-				0,
-				0));
+		fill_mac_intf(mac,MAC_IDLE,0,0);
+		mac_intf_s_fifo_push(tv->mac_fifo,mac);
 		idle_cnt -= DATA_WIDTH_BYTE;
 	}
 
@@ -165,42 +139,22 @@ void gen_new_pkt(
 
 		/* start */
 		pos = 0;
-		seg = get_nxt_pkt_seg(
-			data,
-			&pos,
-			&seg_len,
-			data_len);
-	
-		trans_data_s_fifo_push(tv->data_fifo,
-			init_trans_data(
-				DATA_WIDTH_BYTE,
-				seg,
-				TRANS_DATA_START));
+		seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
+		trans_data_s *trans = init_trans_data(DATA_WIDTH_BYTE, seg, TRANS_DATA_START); 	
+		trans_data_s_fifo_push(tv->data_fifo,trans);
 
 		/* data */
 		while(pos+1+DATA_WIDTH_BYTE < data_len){
-			seg = get_nxt_pkt_seg(
-				data,
-				&pos,
-				&seg_len,
-				data_len);
-			trans_data_s_fifo_push(tv->data_fifo,
-				init_trans_data(
-					DATA_WIDTH_BYTE,
-					seg,
-					TRANS_DATA_START));
+			seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
+			fill_trans_data(trans, DATA_WIDTH_BYTE, seg, TRANS_DATA_START);
+			trans_data_s_fifo_push(tv->data_fifo, trans);
 		}
 		/* term */
-		seg = get_nxt_pkt_seg(
-				data,
-				&pos,
-				&seg_len,
-				data_len);
-		trans_data_s_fifo_push(tv->data_fifo,
-			init_trans_data(
-				DATA_WIDTH_BYTE,
-				seg,
-				TRANS_DATA_TERM));	
+		seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
+		fill_trans_data(trans, DATA_WIDTH_BYTE,	seg, TRANS_DATA_TERM);
+		trans_data_s_fifo_push(tv->data_fifo, trans);
+		
+		free(trans);
  	}
 	#ifdef WIRESHARK
 	/* dump to wireshark */
@@ -210,6 +164,7 @@ void gen_new_pkt(
 		true);
 	#endif
 
+	free(mac);
 	free(data);
 	free(pkt_data);
 

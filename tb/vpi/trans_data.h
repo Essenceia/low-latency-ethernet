@@ -24,6 +24,14 @@ trans_data_s *init_trans_data(
 	trans_data_state_e state
 );
 
+void fill_trans_data(
+	trans_data_s *trans,
+	uint8_t len,
+	data_t data,
+	trans_data_state_e state
+);
+
+
 void print_trans_data(
 	trans_data_s *t
 );

@@ -6,11 +6,20 @@ trans_data_s *init_trans_data(
 	trans_data_state_e state
 ){
 	trans_data_s* ret = (trans_data_s*)malloc(sizeof(trans_data_s));
-	assert(len <= DATA_WIDTH/8);
-	ret->len = len;
-	ret->data = data;
-	ret->state = state;
+	fill_trans_data(ret, len, data,state);
 	return ret;
+}
+
+void fill_trans_data(
+	trans_data_s *trans,
+	uint8_t len,
+	data_t data,
+	trans_data_state_e state
+){
+	assert(len <= DATA_WIDTH/8);
+	trans->len = len;
+	trans->data = data;
+	trans->state = state;
 }
 
 void print_trans_data(trans_data_s *t){
