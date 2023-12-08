@@ -37,7 +37,7 @@ typedef struct tb_fifo {
 	 * Does not free memory.
 	 */
 	void (*elm_dtor)(
-		void *elm
+		void *impl
 	);
 
 	/*

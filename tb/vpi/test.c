@@ -20,10 +20,10 @@ int main(){
 	gen_new_pkt(tv, 0);
 
 	/* print mac interface fifo */
-	mac_intf_s_fifo_log(tv->mac_fifo);
+	//mac_intf_s_fifo_log(tv->mac_fifo);
 
 	/* print trans data interface fifo */
-	trans_data_s_fifo_log(tv->data_fifo);
+	//trans_data_s_fifo_log(tv->data_fifo);
 	
 	info("finished building mac interface\n");
 	

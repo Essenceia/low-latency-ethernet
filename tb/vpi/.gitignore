@@ -1,5 +1,6 @@
 *.hex
 *.o
+!inc/**
 !vpi_i/**
 !vpi_v/**
 build

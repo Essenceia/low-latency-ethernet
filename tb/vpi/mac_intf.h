@@ -72,18 +72,16 @@ void print_mac_intf(
 );
 
 /* fifo */
-static void mac_fifo_dtor(
-	mac_intf_s *e
-) {
-	free(e);
-}
 static void mac_fifo_log(
 	mac_intf_s *e
 )
 {
 	print_mac_intf(e);
 }
-
+static void mac_fifo_dtor(
+	mac_intf_s *e
+) {
+}
 TB_FIFO_API(
 	mac_intf_s, 
 	&mac_fifo_dtor, 

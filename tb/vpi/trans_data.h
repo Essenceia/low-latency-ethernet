@@ -34,7 +34,6 @@ void print_trans_data(
 static void trans_data_fifo_dtor(
 	trans_data_s *e
 ) {
-	free(e);
 }
 static void trans_data_fifo_log(
 	trans_data_s *e
