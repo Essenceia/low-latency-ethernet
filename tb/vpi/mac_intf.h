@@ -66,6 +66,9 @@ void fill_mac_intf(
 	uint8_t data_len
 );
 
+/* get mac signal value, used to handle the where we have start 2 */ 
+uint8_t get_mac_start(mac_intf_s *mac);
+
 /* print */
 void print_mac_intf(
 	mac_intf_s * mac 

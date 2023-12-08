@@ -8,10 +8,8 @@
 /* Iverilog specific vpi wrapping */
 
 #include "tb_network.h"
-#include "../tv.h"
+#include "../tb.h"
 #include "../inc/tb_all.h"
-
-static tv_s *tv;
 
 /* compliletf
  * current unused */
@@ -35,8 +33,7 @@ static int tb_trans_compiletf(char*user_data)
 /* init */
 static int tb_init_calltf(char*user_data)
 {
-	tv = init_tv();
-	gen_new_pkt(tv,0);	
+	init_tb();
 	return 0;
 }
 
@@ -58,7 +55,7 @@ static int tb_trans_calltf(char*user_data)
 /* free */
 static int tb_free_calltf(char*user_data)
 {
-	free_tv(tv);
+	free_tb();
 	return 0;
 }
 

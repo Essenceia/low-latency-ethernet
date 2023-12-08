@@ -120,3 +120,12 @@ void print_mac_intf(mac_intf_s* mac){
 	printf("\n");
 }
 
+uint8_t get_mac_start(mac_intf_s *mac){
+	assert(mac);
+	uint8_t ret = mac->start;
+	#ifdef MAC_INTF_START_2
+	ret |= mac->start_2 << 1;
+	#endif
+	return ret;
+}
+
