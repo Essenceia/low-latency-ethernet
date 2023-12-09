@@ -46,5 +46,7 @@ void tb_mac_rx(
 	vpi_put_logic_uint8_t(h_start_i, get_mac_start(mac));
 	vpi_put_logic_1b_t(h_term_i, mac->term);
 	vpi_put_logic_uint8_t(h_len_i, mac->len);
-	free(mac);
+	
+	/* delete first element of the fifo */
+	mac_intf_s_fifo_del(tv->mac_fifo);
 }

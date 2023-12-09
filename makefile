@@ -268,6 +268,14 @@ run_eth: eth_tb
 vpi:
 	cd $(VPI_DIR) && $(MAKE) $(BUILD_VPI_DIR)/tb.vpi SIM=$(SIM) $(DEFINES) $(40GBASE_ARGS)
 
+#######################
+# debug VPI testbench #
+#######################
+
+debug_run := $(call RUN_VPI,eth_tb)
+
+valgrind:
+	valgrind $(debug_run)	
 
 ####################
 # Standard targets #
