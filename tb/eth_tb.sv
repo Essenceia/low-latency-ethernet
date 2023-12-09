@@ -1,4 +1,4 @@
-`define TB_LOOP_CNT 10
+`define TB_LOOP_CNT 1000
 
 /* Top level tb for ethernet modules */
 module eth_tb;
