@@ -33,6 +33,7 @@ static int tb_trans_compiletf(char*user_data)
 /* init */
 static int tb_init_calltf(char*user_data)
 {
+	info("$tb_init called\n");
 	init_tb();
 	return 0;
 }
@@ -40,8 +41,41 @@ static int tb_init_calltf(char*user_data)
 
 static int tb_mac_calltf(char*user_data)
 {
-	/* TODO network handler */
 	info("$tb_mac called\n");
+	
+	vpiHandle sys = vpi_handle(vpiSysTfCall, 0);
+	assert(sys);
+	vpiHandle argv = vpi_iterate(vpiArgument, sys);
+	assert(argv);
+
+	// handlers : the order matters
+	vpiHandle h_valid_i = vpi_scan(argv);
+	assert(h_valid_i);
+	vpiHandle h_cancel_i = vpi_scan(argv);
+	assert(h_cancel_i);
+	vpiHandle h_ctrl_i = vpi_scan(argv);
+	assert(h_ctrl_i);
+	vpiHandle h_idle_i = vpi_scan(argv);
+	assert(h_idle_i);
+	vpiHandle h_data_i = vpi_scan(argv);
+	assert(h_data_i);
+	vpiHandle h_start_i = vpi_scan(argv);
+	assert(h_start_i);
+	vpiHandle h_term_i = vpi_scan(argv);
+	assert(h_term_i);
+	vpiHandle h_len_i = vpi_scan(argv);
+	assert(h_len_i);
+
+	/* drive mac rx signals */
+	tb_mac_rx(h_valid_i, 
+		h_cancel_i,
+		h_ctrl_i,
+		h_idle_i,
+		h_data_i,
+		h_start_i, 
+		h_term_i,
+		h_len_i);
+
 	return 0;
 }
 
@@ -55,6 +89,7 @@ static int tb_trans_calltf(char*user_data)
 /* free */
 static int tb_free_calltf(char*user_data)
 {
+	info("$tb_free called\n");
 	free_tb();
 	return 0;
 }

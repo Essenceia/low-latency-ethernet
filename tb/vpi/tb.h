@@ -1,6 +1,8 @@
 #ifndef TB_H
 #define TB_H
 
+#include "vpi_utils.h"
+
 void init_tb();
 
 void free_tb();

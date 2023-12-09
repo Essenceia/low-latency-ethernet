@@ -98,14 +98,16 @@ LD := $(LD_CMD) $(LD_FLAGS)
 HDRS += $(VPI_DIR)/tb_network.h$(PP) 
 HDRS += tb_rand.h mac_intf.h defs.h trans_data.h 
 HDRS += tv.h
+HDRS += tb.h
+HDRS += vpi_utils.h
 
 #########
 # Build #
 #########
 
 # General sources
-SRCS := test tv tb_rand mac_intf trans_data
-SRCs += tb_network
+SRCS := test tv tb tb_rand mac_intf trans_data
+SRCS += vpi_utils
 
 # VPI sources
 VPI_SRCS := tb_network
@@ -141,7 +143,7 @@ deps_all :=tv tb_rand mac_intf trans_data
 
 # Test dependencies names. '.o'-s ommitted.
 test_deps_names := test $(deps_all) 
-tb_deps_names := tb_network $(deps_all)
+tb_deps_names := tb vpi_utils tb_network $(deps_all)
 
 # Dependencies generator.
 gen_deps = $(foreach x,$($(1)_deps_names),$(BUILD)/$x.o)

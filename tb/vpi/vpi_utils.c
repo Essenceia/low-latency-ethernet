@@ -6,7 +6,7 @@
  * This code is provided "as is" without any express or implied warranties. */ 
 
 #include "vpi_utils.h"
-#include <assert.h>
+#include "inc/tb_all.h"
 #include <stdlib.h>
 #include "defs.h"
 /* Note : Eventhough calloc set bits to 0 we are still manually

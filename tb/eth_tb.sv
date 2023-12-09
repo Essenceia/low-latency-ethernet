@@ -150,18 +150,24 @@ initial begin
 	$tb_init();
 	nreset = 1'b0;
 	#10
-	$tb_mac();
 	nreset = 1'b1;
 	mac_cancel_i = 1'b0;
 	mac_valid_i = 1'b0;
 	/* generated tx header */
 	set_tx_default();
 	set_rx_idle();
+	for(int i=0; i < `TB_LOOP_CNT; i++) begin 
+		#10
+		$tb_mac(mac_valid_i,
+			mac_cancel_i,
+			mac_ctrl_v_i,
+			mac_idle_i,
+			mac_data_i,
+			mac_start_i,
+			mac_term_i,
+			mac_term_keep_i);
+	end
 	#10
-	$tb_mac();
-	send_simple_tx_data(19);
-	#300
-
 	$tb_free();	
 	$display("Test finised");
 	$finish;		
