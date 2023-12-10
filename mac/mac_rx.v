@@ -4,8 +4,8 @@ module mac_rx #(
 	/* mac supports vlan tagging */
 	parameter VLAN_TAG = 1,
 	parameter DATA_W = 16,
-	parameter KEEP_W = DATA_W/8,
-	parameter LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1
+	localparam LEN_W = $clog2((DATA_W/8)+1),
+	localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1
 )(
 	input clk,
 	input nreset,
@@ -18,17 +18,20 @@ module mac_rx #(
 	input                   idle_i,
 	input [LANE0_CNT_N-1:0] start_i,
 	input                   term_i,
-	input [KEEP_W-1:0]      term_keep_i,
+	input [LEN_W-1:0]       len_i,
 
 	// to IP layer
-	// data
 	output              valid_o,
+	// TODO : drive start/term
+	output              start_o,
+	output              term_o,
+	// data
 	output [DATA_W-1:0] data_o,
-	output [KEEP_W-1:0] keep_o,
+	output [LEN_W-1:0]  len_o,
 
-	// frame check error
-	output crc_err_o
+	output cancel_o /* contains crc error */
 );
+localparam DATA_BYTES_N = DATA_W/8;
 localparam PRE_N  = 8;
 //localparam PRE_W  = PRE_N*8;;
 localparam ADDR_N = 6;
@@ -41,7 +44,7 @@ localparam HEAD_VTAG_N = HEAD_N + VLAN_N;
 localparam CNT_W = $clog2(HEAD_VTAG_N); 
 
 /* header index */
-localparam TYPE_IDX_TMP = PRE_N + 2*ADDR_N - KEEP_W;
+localparam TYPE_IDX_TMP = PRE_N + 2*ADDR_N - DATA_BYTES_N;
 localparam TYPE_IDX_W   = $clog2(TYPE_IDX_TMP);
 /* verilator lint_off WIDTHTRUNC */
 localparam [TYPE_IDX_W-1:0] TYPE_IDX = TYPE_IDX_TMP;
@@ -96,7 +99,7 @@ if ((DATA_W == 64) && (IS_10G == 1)) begin
 	assign data_lite_cnt = start_lite_v ? (start_i[1] ? 'd4 : 'd8): 'd8;
 end else begin
 	/*verilator lint_off WIDTHTRUNC */
-	assign data_lite_cnt = KEEP_W;
+	assign data_lite_cnt = DATA_BYTES_N;
 	/*verilator lint_on WIDTHTRUNC */
 end
 assign data_cnt = {CNT_W{data_v}} & data_lite_cnt;
@@ -229,7 +232,7 @@ always @(posedge clk) begin
 	bypass_v_q <= bypass_v_next;
 end
 
-/* data and keep */
+/* data and len */
 logic              term_lite_v;
 logic              data_lite_v;
 
@@ -237,26 +240,26 @@ assign term_lite_v = ctrl_v_i & term_i;
 assign data_lite_v = data_v & ~bypass_v_q;
 
 if ( DATA_W == 16 ) begin
-	assign keep_o  = term_lite_v ? term_keep_i : {KEEP_W{1'b1}};
+	assign len_o  = term_lite_v ? len_i : DATA_BYTES_N;
 	assign data_o  = data_i;
 	assign valid_o = data_lite_v & fsm_data_q;
 end else begin 
 	/* if DATA_W > 16 need to shift data because of header */
-	logic [KEEP_W-1:0] head_data_keep;
+	logic [LEN_W-1:0]  head_data_len;
 	logic [DATA_W-1:0] head_data_shifted;
 	logic              head_data_lite_v;
 
 	assign head_data_lite_v = type_v;
-	assign keep_o  = {KEEP_W{head_data_lite_v}} & head_data_keep
-				   | {KEEP_W{term_lite_v}} & term_keep_i
-				   | {KEEP_W{~head_data_keep & ~term_lite_v}}; // '1
+	assign len_o   = {LEN_W{head_data_lite_v}} & head_data_len
+				   | {LEN_W{term_lite_v}} & len_i
+				   | {LEN_W{~head_data_len & ~term_lite_v}} & DATA_BYTES_N; // '1
 	assign data_o  = head_data_lite_v ? head_data_shifted : data_i;
 	assign valid_o = data_lite_v & 
 					( fsm_data_q 
 					| fsm_head_q & head_data_lite_v ); 
 	if ( DATA_W == 32 ) begin
 		/* with or whitout vtag data will be on the 2 msb bytes after the type */
-		assign head_data_keep = {2'b0, 2'b11};
+		assign head_data_len =  'd2;
 		assign head_data_shifted = { {TYPE_W{1'bx}}, data_i[DATA_W-:TYPE_W]};
 	end else if ( DATA_W == 64 ) begin
 		/* cnt_q[2] = 20, start 2nd lane0 
@@ -285,8 +288,10 @@ end else begin
 				/* verilator lint_off UNUSEDSIGNAL */
 				assign head_data_shift2 = ~vlan_v;
 				/* verilator lint_on UNUSEDSIGNAL */
+				assign head_data_len = {2'b0, {4{~head_data_shift2}}, 2'b11};  
 			end else begin // !VTAG
 				assign head_data_shift2 = 1'b1;
+				assign head_data_len = 'd2;  
 			end
 		end
 		/* verilator lint_off UNUSEDSIGNAL */
@@ -294,7 +299,6 @@ end else begin
 		/* verilator lint_on UNUSEDSIGNAL */
 								 ? {data_i[DATA_W-:TYPE_W], {DATA_W-TYPE_W{1'bx}}}
 								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}}};
-		assign head_data_keep = {2'b0, {4{~head_data_shift2}}, 2'b11};  
 end
 
 /* term */
@@ -320,24 +324,25 @@ m_crc(
 	.clk(clk),
 	.start_i(crc_start_v),
 	.valid_i(data_v),
-	.len_i('d2),/* TODO: correct len */
+	.len_i(len_i),
 	.data_i(data_i),
 	.crc_o(crc)
 );
 /* fsm */
 logic signal_v;
+logic cancel_v;
 assign signal_v = valid_i & ~cancel_i;
+assign cancel_v = valid_i & cancel_i;
 
-assign fsm_invalid_next = cancel_i
-						| ~valid_i 
+assign fsm_invalid_next = cancel_v
 						| term_v & fsm_data_q
 						| fsm_invalid_q & ~start_v;
 assign fsm_head_next = signal_v 
 					 & (start_v 
-					 | fsm_head_q & ~type_v);
+					 | fsm_head_q & ~type_v) & ~cancel_v;
 assign fsm_data_next = signal_v
 					 & (fsm_head_q & type_v
-					 | fsm_data_q & ~term_v); 
+					 | fsm_data_q & ~term_v) & ~cancel_v; 
 always @(posedge clk) begin
 	if ( ~nreset ) begin
 		fsm_invalid_q <= 1'b1;
@@ -351,7 +356,7 @@ always @(posedge clk) begin
 end
 
 /* output */
-assign crc_err_o = crc_err_v;
+assign cancel_o = crc_err_v | cancel_v;
 
 `ifdef FORMAL
 logic [2:0] f_fsm;

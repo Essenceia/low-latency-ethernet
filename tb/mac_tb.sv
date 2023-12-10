@@ -3,7 +3,8 @@
 
 module mac_tb;
 localparam DATA_W = 16;
-localparam KEEP_W = DATA_W/8;
+localparam LEN_W = $clog2(DATA_W/8)+1;
+localparam DATA_BYTES_N = DATA_W/8;
 localparam VLAN_TAG = 1;
 localparam IS_10G = 1;
 localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1;
@@ -29,13 +30,14 @@ logic                   ctrl_v_i;
 logic                   idle_i;
 logic [LANE0_CNT_N-1:0] start_i;
 logic                   term_i;
-logic [KEEP_W-1:0]      term_keep_i;
+logic [LEN_W-1:0]       len_i;
 /* verilator lint_off UNUSEDSIGNAL */
-logic                   cancel_o;
 logic                   valid_o;
+logic                   start_o;
+logic                   term_o;
 logic [DATA_W-1:0]      data_o;
-logic [KEEP_W-1:0]      keep_o;
-logic                   crc_err_o;
+logic [LEN_W-1:0]       len_o;
+logic                   cancel_o;
 /* verilator lint_on UNUSEDSIGNAL */
 
 function void set_default();
@@ -45,11 +47,15 @@ function void set_default();
 	idle_i = 1'b0;
 	start_i = {LANE0_CNT_N{1'b0}};
 	term_i = 1'b0;
-	term_keep_i = {KEEP_W{1'bx}};	
+	len_i = 'd0;	
 	data_i = {DATA_W{1'bx}};
 endfunction
 
 task idle_cycle();
+	start_i = 1'b0;
+	term_i = 1'b0;
+	cancel_i = 1'b0;
+	len_i = {LEN_W{1'bx}};
 	valid_i = 1'b1;
 	ctrl_v_i = 1'b1;
 	idle_i = 1'b1;
@@ -98,6 +104,7 @@ endfunction
 task send_packet(int l, int ipv4_v, int has_vtag); 
 	int s;
 	int h_l;
+	int t_l; 
 	logic [DATA_W-1:0] tmp;
 	logic [HEAD_LEN*8-1:0] h; 
 	h = {HEAD_LEN*8{1'bx}};
@@ -109,44 +116,41 @@ task send_packet(int l, int ipv4_v, int has_vtag);
 	/* set head */
 	set_default();
 	valid_i = 1'b1;
+	len_i = DATA_BYTES_N;
 	ctrl_v_i = 1'b1;
 	start_i = 'b1;
 	data_i = h[0+:DATA_W];
 	#10
-	for(int i=KEEP_W; i < h_l/KEEP_W; i++) begin
+	start_i = 'b0;
+	for(int i=DATA_BYTES_N; (i*DATA_BYTES_N) < h_l; i++) begin: loop_head_data
 		ctrl_v_i = 1'b0;
 		data_i = h[i*DATA_W+:DATA_W];	
 		#10
 		data_i = {DATA_W{1'bx}};
 	end
 	/* complete data if full header was not sent */
-	s = h_l % KEEP_W;
-	for(int i=0; i<s; i++) begin
+	s = h_l % DATA_BYTES_N;
+	for(int i=0; i<s; i++) begin : loop_head_data_end
 		data_i[i*8+:8] = h[h_l-(i*8)-1-:8];
 	end
 
 	/* send packet inner */
-	for(int i=s; i< l+s; i++) begin
+	for(t_l=s; t_l+DATA_BYTES_N < l+s; t_l++) begin: loop_inner_data
 		/* verilator lint_off WIDTHTRUNC */	
-		data_i[(i%KEEP_W)*8+:8] = $random;
+		data_i[(t_l%DATA_BYTES_N)*8+:8] = $random;
 		/* verilator lint_on WIDTHTRUNC */	
-		if((i+1)%KEEP_W == 0)begin
+		if( ((t_l+1)>=DATA_BYTES_N) && ((t_l+1)%DATA_BYTES_N == 0))begin
 			#10
 			data_i = {DATA_W{1'bx}};
 		end	
 	end	
 	/* send term */
-	for(int i=0; i<KEEP_W; i++)begin
-		if((l+s)%KEEP_W > i) begin
-			term_keep_i[i] = 1'b1;
-		end else begin
-			term_keep_i[i] = 1'b0;
-		end
-	end
+	data_i = $random;
+	len_i = (l+s)-t_l;
 	ctrl_v_i = 1'b1;
 	term_i = 1'b1;
-	start_i = '0;
 	#10
+	data_i = {DATA_W{1'bx}};
 	ctrl_v_i = 1'b0;
 	valid_i = 1'b0;	
 endtask
@@ -200,8 +204,7 @@ end
 mac_rx#(
 	.IS_10G(IS_10G),
 	.VLAN_TAG(VLAN_TAG),
-	.DATA_W(DATA_W),
-	.KEEP_W(KEEP_W)
+	.DATA_W(DATA_W)
 )m_mac_rx(
 .clk(clk),
 .nreset(nreset),
@@ -212,11 +215,12 @@ mac_rx#(
 .idle_i(idle_i),
 .start_i(start_i),
 .term_i(term_i),
-.term_keep_i(term_keep_i),
-.cancel_o(cancel_o),
+.len_i(len_i),
 .valid_o(valid_o),
+.start_o(start_o),
+.term_o(term_o),
 .data_o(data_o),
-.keep_o(keep_o),
-.crc_err_o(crc_err_o)
+.len_o(len_o),
+.cancel_o(cancel_o)
 );
 endmodule
