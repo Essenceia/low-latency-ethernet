@@ -12,7 +12,7 @@ localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1;
 localparam TYPE_W = 16;
 //localparam [7:0] START_CHAR = 8'haa;
 localparam [TYPE_W-1:0] VLAN_TYPE = 16'h8100;
-localparam [TYPE_W-1:0] IPV4_TYPE = 16'h8000;
+localparam [TYPE_W-1:0] IPV4_TYPE = 16'h0800;
 
 localparam HEAD_LEN = 22 + ( VLAN_TAG ? 4 : 0 );
 //localparam TB_PKT_LEN = HEAD_LEN + KEEP_W*`TB_DATA_CYCLES;
@@ -213,7 +213,8 @@ always @(posedge clk) begin
 		assert( ~valid_o | ( valid_o & ~$isunknown(start_o)));
 		assert( ~valid_o | ( valid_o & ~$isunknown(term_o)));
 		assert( ~valid_o | ( valid_o & ~$isunknown(len_o)));
-		/* can't have term and start asserted at the same time */
+		/* can't have term and start asserted at the same time 
+ 		 * cound be a false positive if mac data lenght is less than DATA_BYTE_N */
 		assert( ~valid_o | ( valid_o & ~(start_o & term_o)));
 		/* x check data based on len */
 		for(int l=0; l < len_o; l++)begin
