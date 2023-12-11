@@ -99,11 +99,13 @@ logic                  cnt_rst;
 assign cnt_add = {{TOT_LEN_W-LEN_W{1'b0}}, {LEN_W{valid_i}} & len_i}; 
 assign {unused_cnt_lite_next_of, cnt_lite_next} = cnt_q + cnt_add;
 
-assign cnt_rst  = fsm_idle_q & ~valid_i;
+assign cnt_rst  = fsm_idle_q & ~start_i;
 assign cnt_next = cnt_rst ? {TOT_LEN_W{1'b0}} : cnt_lite_next;
 
 always @(posedge clk) begin
-	cnt_q <= cnt_next;
+	if(valid_i)begin
+		cnt_q <= cnt_next;
+	end
 end
 
 /* save ip header length value to track end of header, */ 
