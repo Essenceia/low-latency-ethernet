@@ -12,8 +12,6 @@ void free_tb();
 void tb_mac_rx(	
 	vpiHandle h_valid_i,
 	vpiHandle h_cancel_i,
-	vpiHandle h_ctrl_i,
-	vpiHandle h_idle_i,
 	vpiHandle h_data_i,
 	vpiHandle h_start_i,
 	vpiHandle h_term_v_i,

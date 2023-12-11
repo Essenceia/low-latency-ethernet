@@ -36,9 +36,6 @@ void fill_mac_intf(
 				mac->start_2 = true;
 				break;		
 			#endif
-			case MAC_IDLE:
-				mac->idle = true;
-				break;
 			case MAC_TERM_0:
 				assert(data_len==0);
 				mac->term = true;
@@ -105,8 +102,6 @@ void print_mac_intf(mac_intf_s* mac){
 			if(mac->start_2)
 				printf("start_2");
 			#endif
-			if(mac->idle)
-				printf("idle");
 			if(mac->term)
 				printf("term");
 			if(mac->cancel)

@@ -16,8 +16,6 @@ void free_tb(){
 void tb_mac_rx(	
 	vpiHandle h_valid_i,
 	vpiHandle h_cancel_i,
-	vpiHandle h_ctrl_i,
-	vpiHandle h_idle_i,
 	vpiHandle h_data_i,
 	vpiHandle h_start_i,
 	vpiHandle h_term_i,
@@ -39,8 +37,6 @@ void tb_mac_rx(
  	 * vpi signal handlers */
 	vpi_put_logic_1b_t(h_valid_i, mac->valid);	
 	vpi_put_logic_1b_t(h_cancel_i, mac->cancel);	
-	vpi_put_logic_1b_t(h_ctrl_i, mac->ctrl);	
-	vpi_put_logic_1b_t(h_idle_i, mac->idle);
 	/* call correct put function depending on the DATA_WIDTH */	
 	CAT3(vpi_put_logic_uint,DATA_WIDTH,_t(h_data_i, mac->data));
 	vpi_put_logic_uint8_t(h_start_i, get_mac_start(mac));

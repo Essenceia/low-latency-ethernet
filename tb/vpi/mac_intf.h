@@ -17,7 +17,6 @@ typedef struct{
 	bool valid;
 	bool cancel;
 	bool ctrl;
-	bool idle;
 	data_t data; 
 	bool start;
 	#ifdef MAC_INTF_START_2
@@ -34,7 +33,6 @@ typedef enum {
 	#ifdef MAC_INTF_START_2
 	MAC_START_2,// start on second lane 
 	#endif
-	MAC_IDLE,
 	MAC_TERM_0,
 	MAC_TERM_1,
 	#if (DATA_WIDTH > 16)

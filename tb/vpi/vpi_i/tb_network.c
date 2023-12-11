@@ -53,10 +53,6 @@ static int tb_mac_calltf(char*user_data)
 	assert(h_valid_i);
 	vpiHandle h_cancel_i = vpi_scan(argv);
 	assert(h_cancel_i);
-	vpiHandle h_ctrl_i = vpi_scan(argv);
-	assert(h_ctrl_i);
-	vpiHandle h_idle_i = vpi_scan(argv);
-	assert(h_idle_i);
 	vpiHandle h_data_i = vpi_scan(argv);
 	assert(h_data_i);
 	vpiHandle h_start_i = vpi_scan(argv);
@@ -69,8 +65,6 @@ static int tb_mac_calltf(char*user_data)
 	/* drive mac rx signals */
 	tb_mac_rx(h_valid_i, 
 		h_cancel_i,
-		h_ctrl_i,
-		h_idle_i,
 		h_data_i,
 		h_start_i, 
 		h_term_i,

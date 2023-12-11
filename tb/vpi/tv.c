@@ -117,7 +117,7 @@ void gen_new_pkt(
  	 */
 	int idle_cnt = (8 - ((int)pos)%8)/DATA_WIDTH_BYTE;
 	while(idle_cnt>0){
-		fill_mac_intf(mac,MAC_IDLE,0,0);
+		fill_mac_intf(mac,MAC_INVALID,0,0);
 		mac_intf_s_fifo_push(tv->mac_fifo,mac);
 		idle_cnt -= DATA_WIDTH_BYTE;
 	}
