@@ -56,6 +56,7 @@ task idle_cycle();
 	valid_i = 1'b1;
 	idle_i = 1'b1;
 	#10
+	assert(~valid_o);
 	idle_i = 1'b0;
 endtask
 /* set mac header function

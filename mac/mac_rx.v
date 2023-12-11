@@ -68,9 +68,9 @@ assign data_v = valid_i & ~idle_i;
 
 /* start of a new packet */
 logic start_v;
-logic start_lite_v;
-assign start_lite_v = |start_i;
-assign start_v = valid_i & start_lite_v;
+logic start_lite;
+assign start_lite = |start_i;
+assign start_v = valid_i & start_lite;
 
 /* handle header : ignore all information
  * without vtag :
@@ -93,7 +93,7 @@ logic [CNT_W-1:0] data_cnt;
 /* cnt the number of bytes received from the PCS */
 if ((DATA_W == 64) && (IS_10G == 1)) begin
 	/* first packet can have 4 or 8 bytes of data */
-	assign data_lite_cnt = start_lite_v ? (start_i[1] ? 'd4 : 'd8): 'd8;
+	assign data_lite_cnt = start_lite ? (start_i[1] ? 'd4 : 'd8): 'd8;
 end else begin
 	/*verilator lint_off WIDTHTRUNC */
 	assign data_lite_cnt = DATA_BYTES_N;
@@ -230,14 +230,12 @@ always @(posedge clk) begin
 end
 
 /* data and len */
-logic              term_lite_v;
 logic              data_lite_v;
 
-assign term_lite_v = term_i;
 assign data_lite_v = data_v & ~bypass_v_q;
 
 if ( DATA_W == 16 ) begin
-	assign len_o  = term_lite_v ? len_i : DATA_BYTES_N;
+	assign len_o  = term_i ? len_i : DATA_BYTES_N;
 	assign data_o  = data_i;
 	assign valid_o = data_lite_v & fsm_data_q;
 	
@@ -257,8 +255,8 @@ end else begin
 
 	assign head_data_lite_v = type_v;
 	assign len_o   = {LEN_W{head_data_lite_v}} & head_data_len
-				   | {LEN_W{term_lite_v}} & len_i
-				   | {LEN_W{~head_data_len & ~term_lite_v}} & DATA_BYTES_N; // '1
+				   | {LEN_W{term_i}} & len_i
+				   | {LEN_W{~head_data_len & ~term_i}} & DATA_BYTES_N; // '1
 	assign data_o  = head_data_lite_v ? head_data_shifted : data_i;
 	assign valid_o = data_lite_v & 
 					( fsm_data_q 
@@ -308,10 +306,6 @@ end else begin
 								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}}};
 end
 
-/* term */
-logic term_v;
-assign term_v   = valid_i & term_lite_v;
- 
 /* crc */
 // TODO 
 logic             crc_start_v;
@@ -324,7 +318,7 @@ assign crc_start_v = cnt_q == 8;
  * TODO: handle when data does not end
  * on payload boundary */
 assign crc_zero = ~|crc;
-assign crc_err_v = ~crc_zero & term_v; 
+assign crc_err_v = ~crc_zero & term_i & valid_i; 
 
 crc #(.DATA_W(DATA_W), .CRC_W(CRC_W))
 m_crc(
@@ -336,29 +330,25 @@ m_crc(
 	.crc_o(crc)
 );
 /* fsm */
-logic signal_v;
-logic cancel_v;
-assign signal_v = valid_i & ~cancel_i;
-assign cancel_v = valid_i & cancel_i;
 
-assign fsm_invalid_next = cancel_v
-						| term_v & fsm_data_q
-						| fsm_invalid_q & ~start_v;
-assign fsm_head_next = signal_v 
-					 & (start_v 
-					 | fsm_head_q & ~type_v) & ~cancel_v;
-assign fsm_data_next = signal_v
-					 & (fsm_head_q & type_v
-					 | fsm_data_q & ~term_v) & ~cancel_v; 
+assign fsm_invalid_next = cancel_i
+						| term_i & fsm_data_q
+						| fsm_invalid_q & ~start_lite;
+assign fsm_head_next = (start_lite
+					 | fsm_head_q & ~type_v) & ~cancel_i;
+assign fsm_data_next = (fsm_head_q & type_v
+					 | fsm_data_q & ~term_i) & ~cancel_i; 
 always @(posedge clk) begin
 	if ( ~nreset ) begin
 		fsm_invalid_q <= 1'b1;
 		fsm_head_q <= 1'b0;
 		fsm_data_q <= 1'b0;
 	end else begin
-		fsm_invalid_q <= fsm_invalid_next;
-		fsm_head_q <= fsm_head_next;
-		fsm_data_q <= fsm_data_next;
+		if(valid_i)begin
+			fsm_invalid_q <= fsm_invalid_next;
+			fsm_head_q <= fsm_head_next;
+			fsm_data_q <= fsm_data_next;
+		end
 	end
 end
 
