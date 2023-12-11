@@ -26,7 +26,6 @@ logic nreset;
 logic                   cancel_i;
 logic                   valid_i;
 logic [DATA_W-1:0]      data_i;
-logic                   ctrl_v_i;
 logic                   idle_i;
 logic [LANE0_CNT_N-1:0] start_i;
 logic                   term_i;
@@ -34,16 +33,14 @@ logic [LEN_W-1:0]       len_i;
 /* verilator lint_off UNUSEDSIGNAL */
 logic                   valid_o;
 logic                   start_o;
-logic                   term_o;
 logic [DATA_W-1:0]      data_o;
 logic [LEN_W-1:0]       len_o;
-logic                   cancel_o;
+logic                   crc_err_o;
 /* verilator lint_on UNUSEDSIGNAL */
 
 function void set_default();
 	cancel_i = 1'b0;
 	valid_i = 1'b0;
-	ctrl_v_i = 1'b0;
 	idle_i = 1'b0;
 	start_i = {LANE0_CNT_N{1'b0}};
 	term_i = 1'b0;
@@ -57,10 +54,8 @@ task idle_cycle();
 	cancel_i = 1'b0;
 	len_i = {LEN_W{1'bx}};
 	valid_i = 1'b1;
-	ctrl_v_i = 1'b1;
 	idle_i = 1'b1;
 	#10
-	ctrl_v_i = 1'b0;
 	idle_i = 1'b0;
 endtask
 /* set mac header function
@@ -117,13 +112,11 @@ task send_packet(int l, int ipv4_v, int has_vtag);
 	set_default();
 	valid_i = 1'b1;
 	len_i = DATA_BYTES_N;
-	ctrl_v_i = 1'b1;
 	start_i = 'b1;
 	data_i = h[0+:DATA_W];
 	#10
 	start_i = 'b0;
 	for(int i=DATA_BYTES_N; (i*DATA_BYTES_N) < h_l; i++) begin: loop_head_data
-		ctrl_v_i = 1'b0;
 		data_i = h[i*DATA_W+:DATA_W];	
 		#10
 		data_i = {DATA_W{1'bx}};
@@ -141,8 +134,6 @@ task send_packet(int l, int ipv4_v, int has_vtag);
 		/* verilator lint_on WIDTHTRUNC */	
 		if( ((t_l+1)>=DATA_BYTES_N) && ((t_l+1)%DATA_BYTES_N == 0))begin
 			#10
-			/* no term */
-			assert(~term_o);
 			/* we expect to have data bytes sent to upper layer if the
  			 * type matches, if not the packet content should be bypassed */ 
 			assert(valid_o == (ipv4_v));
@@ -151,13 +142,9 @@ task send_packet(int l, int ipv4_v, int has_vtag);
 	/* send term */
 	data_i = $random;
 	len_i = (l+s)-t_l;
-	ctrl_v_i = 1'b1;
 	term_i = 1'b1;
 	#10
-	/* term sent to upper layer */
-	assert(term_o);
 	data_i = {DATA_W{1'bx}};
-	ctrl_v_i = 1'b0;
 	valid_i = 1'b0;	
 endtask
 
@@ -209,13 +196,9 @@ end
 always @(posedge clk) begin
 	if(nreset)begin
 		assert(~$isunknown(valid_o));
-		assert( ~valid_o | ( valid_o & ~$isunknown(cancel_o)));
+		assert( ~valid_o | ( valid_o & ~$isunknown(crc_err_o)));
 		assert( ~valid_o | ( valid_o & ~$isunknown(start_o)));
-		assert( ~valid_o | ( valid_o & ~$isunknown(term_o)));
 		assert( ~valid_o | ( valid_o & ~$isunknown(len_o)));
-		/* can't have term and start asserted at the same time 
- 		 * cound be a false positive if mac data lenght is less than DATA_BYTE_N */
-		assert( ~valid_o | ( valid_o & ~(start_o & term_o)));
 		/* x check data based on len */
 		for(int l=0; l < len_o; l++)begin
 			assert( ~valid_o | ( valid_o & ~$isunknown(data_o[l*8+:8])));
@@ -234,16 +217,14 @@ mac_rx#(
 .cancel_i(cancel_i),
 .valid_i(valid_i),
 .data_i(data_i),
-.ctrl_v_i(ctrl_v_i),
 .idle_i(idle_i),
 .start_i(start_i),
 .term_i(term_i),
 .len_i(len_i),
 .valid_o(valid_o),
 .start_o(start_o),
-.term_o(term_o),
 .data_o(data_o),
 .len_o(len_o),
-.cancel_o(cancel_o)
+.crc_err_o(crc_err_o)
 );
 endmodule

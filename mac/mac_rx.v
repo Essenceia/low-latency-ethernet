@@ -14,7 +14,6 @@ module mac_rx #(
 	// from physical layer
 	input                   valid_i,
 	input [DATA_W-1:0]      data_i,
-	input                   ctrl_v_i,
 	input                   idle_i,
 	input [LANE0_CNT_N-1:0] start_i,
 	input                   term_i,
@@ -22,14 +21,12 @@ module mac_rx #(
 
 	// to IP layer
 	output              valid_o,
-	// TODO : drive start/term
 	output              start_o,
-	output              term_o,
 	// data
 	output [DATA_W-1:0] data_o,
 	output [LEN_W-1:0]  len_o,
 
-	output cancel_o /* contains crc error */
+	output crc_err_o /* contains crc error */
 );
 localparam DATA_BYTES_N = DATA_W/8;
 localparam PRE_N  = 8;
@@ -67,12 +64,12 @@ logic fsm_data_next;
 
 /* input data is valid */
 logic data_v;
-assign data_v = valid_i & ~(ctrl_v_i & idle_i); 
+assign data_v = valid_i & ~idle_i; 
 
 /* start of a new packet */
 logic start_v;
 logic start_lite_v;
-assign start_lite_v = ctrl_v_i & |start_i;
+assign start_lite_v = |start_i;
 assign start_v = valid_i & start_lite_v;
 
 /* handle header : ignore all information
@@ -236,7 +233,7 @@ end
 logic              term_lite_v;
 logic              data_lite_v;
 
-assign term_lite_v = ctrl_v_i & term_i;
+assign term_lite_v = term_i;
 assign data_lite_v = data_v & ~bypass_v_q;
 
 if ( DATA_W == 16 ) begin
@@ -327,7 +324,7 @@ assign crc_start_v = cnt_q == 8;
  * TODO: handle when data does not end
  * on payload boundary */
 assign crc_zero = ~|crc;
-assign crc_err_v = ~crc_zero & term_lite_v; 
+assign crc_err_v = ~crc_zero & term_v; 
 
 crc #(.DATA_W(DATA_W), .CRC_W(CRC_W))
 m_crc(
@@ -365,9 +362,8 @@ always @(posedge clk) begin
 	end
 end
 
-/* output, ctrl signals will be masked by valid */
-assign cancel_o = crc_err_v | cancel_i;
-assign term_o = term_lite_v;
+/* output */
+assign crc_err_o = crc_err_v;
 
 `ifdef FORMAL
 logic [2:0] f_fsm;

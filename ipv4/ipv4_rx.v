@@ -13,24 +13,25 @@
  * Currently only support DATA_W = 16 */
 module ipv4_rx #(
 	parameter DATA_W = 16,
-	parameter LEN_W = $clog2(DATA_W/8),
+	localparam LEN_W = $clog2((DATA_W/8)+1),
 
-	parameter ADDR_W = 32,
+	localparam ADDR_W = 32,
 	parameter MATCH_SRC_ADDR = 1, 
 	parameter MATCH_DST_ADDR = 1, 
 	parameter [ADDR_W-1:0] SRC_ADDR = {8'd206, 8'd200, 8'd127, 8'd128},
 	parameter [ADDR_W-1:0] DST_ADDR = {8'd206, 8'd200, 8'd127, 8'd128},
 	
-	parameter PROT_W = 8,/* Protocol */
+	localparam PROT_W = 8,/* Protocol */
 	/* filtering, accepted protocol */
 	parameter [PROT_W-1:0] PROTOCOL = 8'd17 /* UDP */
 )(
 	input clk,
 	input nreset,
 
-	input cancel_i,
+	input              cancel_i,
 	/* MAC */
-	input valid_i,
+	input              valid_i,
+	input              start_i,
 	input [DATA_W-1:0] data_i,
 	input [LEN_W-1:0]  len_i,
 	/* error detection 
@@ -39,6 +40,8 @@ module ipv4_rx #(
 
 	/* Transport */
 	output              valid_o,
+	output              start_o,
+	output              cancel_o,
 	output [DATA_W-1:0] data_o,
 	output [LEN_W-1:0]  len_o
 );
@@ -257,7 +260,7 @@ reg   [TOT_LEN_W-1:0] tot_len_q;
 logic [TOT_LEN_W-1:0] tot_len_next;
 logic                 tot_len_en;
 
-assign tot_len_en   = cnt_q == 'd2;
+assign tot_len_en   = (cnt_q == 'd2) & valid_i;
 assign tot_len_next = data_i; 
 always @(posedge clk) begin
 	if(tot_len_en)begin
@@ -273,10 +276,11 @@ logic end_data_v;
 assign end_data_v = cnt_add >= tot_len_q;
  
 /* fsm */
+
 assign fsm_idle_next = cancel_i 
-					 | fsm_idle_q & ~valid_i
+					 | fsm_idle_q & ~start_i
 					 | fsm_data_q & end_data_v;
-assign fsm_head_next = fsm_idle_q & valid_i
+assign fsm_head_next = fsm_idle_q & start_i
 					 | fsm_head_q & ~end_head_v;
 assign fsm_data_next = fsm_head_q & end_head_v
 					 | fsm_data_q & ~end_data_v;
@@ -286,9 +290,19 @@ always @(posedge clk) begin
 		fsm_head_q <= 1'b0;
 		fsm_data_q <= 1'b0;
 	end else begin
-		fsm_idle_q <= fsm_idle_next;
-		fsm_head_q <= fsm_head_next;
-		fsm_data_q <= fsm_data_next;
+		if(valid_i)begin
+			fsm_idle_q <= fsm_idle_next;
+			fsm_head_q <= fsm_head_next;
+			fsm_data_q <= fsm_data_next;
+		end
+	end
+end
+
+/* start, flop head  */
+reg fsm_head_2q;
+always @(posedge clk) begin
+	if (valid_i) begin
+		fsm_head_2q <= fsm_head_q;
 	end
 end
 
@@ -298,6 +312,7 @@ end
 assign valid_o = valid_i & fsm_data_q &  ~bypass_v_q;
 assign data_o  = data_i;
 assign len_o   = len_i;
+assign start_o = fsm_head_2q & fsm_data_q;
 /* cs error will be transmitied in the first cycle of valid data
  * for transport layer */
 assign cs_err_o = cs_err_v; 

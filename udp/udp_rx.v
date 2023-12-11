@@ -20,12 +20,14 @@ module udp_rx #(
 	input              cancel_i,
 	// ip payload
 	input              valid_i,
+	input              start_i,
 	input [DATA_W-1:0] data_i,
 	input [LEN_W-1:0]  len_i,
 	input              ip_cs_err_i,
 	
 	// to application layer
 	output              valid_o,
+	output              start_o,
 	//output              last_o,TODO: check if we can do without
 	output [DATA_W-1:0] data_o, 
 	output [LEN_W-1:0]  len_o
