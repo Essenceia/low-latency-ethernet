@@ -14,7 +14,6 @@ module mac_rx #(
 	// from physical layer
 	input                   valid_i,
 	input [DATA_W-1:0]      data_i,
-	input                   idle_i,
 	input [LANE0_CNT_N-1:0] start_i,
 	input                   term_i,
 	input [LEN_W-1:0]       len_i,
@@ -62,10 +61,6 @@ logic fsm_head_next;
 reg   fsm_data_q;
 logic fsm_data_next;
 
-/* input data is valid */
-logic data_v;
-assign data_v = valid_i & ~idle_i; 
-
 /* start of a new packet */
 logic start_v;
 logic start_lite;
@@ -86,23 +81,21 @@ logic [CNT_W-1:0] cnt_next;
 logic [CNT_W-1:0] cnt_add;
 logic             unused_cnt_add_of;
 logic             cnt_rst; 
-logic [CNT_W-1:0] data_lite_cnt;
 logic [CNT_W-1:0] data_cnt;
 
 
 /* cnt the number of bytes received from the PCS */
 if ((DATA_W == 64) && (IS_10G == 1)) begin
 	/* first packet can have 4 or 8 bytes of data */
-	assign data_lite_cnt = start_lite ? (start_i[1] ? 'd4 : 'd8): 'd8;
+	assign data_cnt = start_lite ? (start_i[1] ? 'd4 : 'd8): 'd8;
 end else begin
 	/*verilator lint_off WIDTHTRUNC */
-	assign data_lite_cnt = DATA_BYTES_N;
+	assign data_cnt = DATA_BYTES_N;
 	/*verilator lint_on WIDTHTRUNC */
 end
-assign data_cnt = {CNT_W{data_v}} & data_lite_cnt;
 
 assign cnt_rst = fsm_invalid_q & ~start_v; 
-assign {unused_cnt_add_of, cnt_add} = cnt_q + data_cnt;
+assign {unused_cnt_add_of, cnt_add} = cnt_q + ({CNT_W{valid_i}} & data_cnt);
 assign cnt_next = cnt_rst ? {CNT_W{1'b0}} : cnt_add;
 
 always @(posedge clk) begin
@@ -232,7 +225,7 @@ end
 /* data and len */
 logic              data_lite_v;
 
-assign data_lite_v = data_v & ~bypass_v_q;
+assign data_lite_v = valid_i & ~bypass_v_q;
 
 if ( DATA_W == 16 ) begin
 	assign len_o  = term_i ? len_i : DATA_BYTES_N;
@@ -324,7 +317,7 @@ crc #(.DATA_W(DATA_W), .CRC_W(CRC_W))
 m_crc(
 	.clk(clk),
 	.start_i(crc_start_v),
-	.valid_i(data_v),
+	.valid_i(valid_i),
 	.len_i(len_i),
 	.data_i(data_i),
 	.crc_o(crc)

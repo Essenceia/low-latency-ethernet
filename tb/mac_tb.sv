@@ -26,7 +26,6 @@ logic nreset;
 logic                   cancel_i;
 logic                   valid_i;
 logic [DATA_W-1:0]      data_i;
-logic                   idle_i;
 logic [LANE0_CNT_N-1:0] start_i;
 logic                   term_i;
 logic [LEN_W-1:0]       len_i;
@@ -41,7 +40,6 @@ logic                   crc_err_o;
 function void set_default();
 	cancel_i = 1'b0;
 	valid_i = 1'b0;
-	idle_i = 1'b0;
 	start_i = {LANE0_CNT_N{1'b0}};
 	term_i = 1'b0;
 	len_i = 'd0;	
@@ -53,11 +51,9 @@ task idle_cycle();
 	term_i = 1'b0;
 	cancel_i = 1'b0;
 	len_i = {LEN_W{1'bx}};
-	valid_i = 1'b1;
-	idle_i = 1'b1;
+	valid_i = 1'b0;
 	#10
 	assert(~valid_o);
-	idle_i = 1'b0;
 endtask
 /* set mac header function
  * ipv4_v : set type to IPV4
@@ -218,7 +214,6 @@ mac_rx#(
 .cancel_i(cancel_i),
 .valid_i(valid_i),
 .data_i(data_i),
-.idle_i(idle_i),
 .start_i(start_i),
 .term_i(term_i),
 .len_i(len_i),
