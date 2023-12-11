@@ -243,6 +243,15 @@ if ( DATA_W == 16 ) begin
 	assign len_o  = term_lite_v ? len_i : DATA_BYTES_N;
 	assign data_o  = data_i;
 	assign valid_o = data_lite_v & fsm_data_q;
+	
+	/* flop fsm_head_q to detect first data cycle */
+	reg fsm_head_2q;
+	always @(posedge clk)begin
+		if(valid_i)begin
+			fsm_head_2q <= fsm_head_q;
+		end
+	end
+	assign start_o =  fsm_head_2q & fsm_data_q;
 end else begin 
 	/* if DATA_W > 16 need to shift data because of header */
 	logic [LEN_W-1:0]  head_data_len;
@@ -257,6 +266,7 @@ end else begin
 	assign valid_o = data_lite_v & 
 					( fsm_data_q 
 					| fsm_head_q & head_data_lite_v ); 
+	assign start_o = head_data_lite_v;
 	if ( DATA_W == 32 ) begin
 		/* with or whitout vtag data will be on the 2 msb bytes after the type */
 		assign head_data_len =  'd2;
@@ -317,7 +327,7 @@ assign crc_start_v = cnt_q == 8;
  * TODO: handle when data does not end
  * on payload boundary */
 assign crc_zero = ~|crc;
-assign crc_err_v = crc_zero & term_v; 
+assign crc_err_v = ~crc_zero & term_lite_v; 
 
 crc #(.DATA_W(DATA_W), .CRC_W(CRC_W))
 m_crc(
@@ -355,8 +365,9 @@ always @(posedge clk) begin
 	end
 end
 
-/* output */
-assign cancel_o = crc_err_v | cancel_v;
+/* output, ctrl signals will be masked by valid */
+assign cancel_o = crc_err_v | cancel_i;
+assign term_o = term_lite_v;
 
 `ifdef FORMAL
 logic [2:0] f_fsm;

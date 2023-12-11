@@ -79,7 +79,7 @@ function automatic logic [HEAD_LEN*8-1:0] set_head(int ipv4_v,int has_vtag );
 	
 
 	/* type and vlan */
-	logic [TYPE_W-1:0] h_type = {TYPE_W{ipv4_v!=0}} & IPV4_TYPE | {TYPE_W{ipv4_v == 0}};;
+	logic [TYPE_W-1:0] h_type = ipv4_v ? IPV4_TYPE : {TYPE_W{1'b0}};
 
 	if ( VLAN_TAG && (has_vtag!=0)) begin
 		logic [31:0] vlan_tag;
@@ -141,7 +141,11 @@ task send_packet(int l, int ipv4_v, int has_vtag);
 		/* verilator lint_on WIDTHTRUNC */	
 		if( ((t_l+1)>=DATA_BYTES_N) && ((t_l+1)%DATA_BYTES_N == 0))begin
 			#10
-			data_i = {DATA_W{1'bx}};
+			/* no term */
+			assert(~term_o);
+			/* we expect to have data bytes sent to upper layer if the
+ 			 * type matches, if not the packet content should be bypassed */ 
+			assert(valid_o == (ipv4_v));
 		end	
 	end	
 	/* send term */
@@ -150,6 +154,8 @@ task send_packet(int l, int ipv4_v, int has_vtag);
 	ctrl_v_i = 1'b1;
 	term_i = 1'b1;
 	#10
+	/* term sent to upper layer */
+	assert(term_o);
 	data_i = {DATA_W{1'bx}};
 	ctrl_v_i = 1'b0;
 	valid_i = 1'b0;	
@@ -178,7 +184,7 @@ initial begin
  	 * simple packet, end of packet not
  	 * aligned on payload  */
 	$display("test 2 %t",$time);
-	send_packet(3,1,1);
+	send_packet(8,1,1);
 	idle_cycle();
 	idle_cycle();
 	/* Test 3
@@ -199,6 +205,22 @@ initial begin
 	$finish;
 end
 
+/* added output X check and consistency */
+always @(posedge clk) begin
+	if(nreset)begin
+		assert(~$isunknown(valid_o));
+		assert( ~valid_o | ( valid_o & ~$isunknown(cancel_o)));
+		assert( ~valid_o | ( valid_o & ~$isunknown(start_o)));
+		assert( ~valid_o | ( valid_o & ~$isunknown(term_o)));
+		assert( ~valid_o | ( valid_o & ~$isunknown(len_o)));
+		/* can't have term and start asserted at the same time */
+		assert( ~valid_o | ( valid_o & ~(start_o & term_o)));
+		/* x check data based on len */
+		for(int l=0; l < len_o; l++)begin
+			assert( ~valid_o | ( valid_o & ~$isunknown(data_o[l*8+:8])));
+		end
+	end
+end
 
 /* uut */
 mac_rx#(
