@@ -4,7 +4,11 @@
 ###########
 
 ifndef debug
-#debug :=
+debug :=
+endif
+
+ifndef wireshark
+wireshark:=
 endif
 
 # Enable waves by default
@@ -51,6 +55,8 @@ VIEW := gtkwave
 GDB_CONF := .gdbinit
 DEBUG_FLAG := $(if $(debug), debug=1)
 DEFINES := $(if $(wave),wave=1)
+DEFINES += $(DEBUG_FLAG)
+DEFINES +=$(if $(wireshark), wireshark=1)
 
 ########
 # Lint #

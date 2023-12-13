@@ -4,6 +4,7 @@
 module eth_tb;
 
 localparam IS_10G = 1;
+localparam VLAN_TAG = 1;
 
 localparam DATA_W = 16;
 localparam KEEP_W = DATA_W/8;
@@ -170,6 +171,7 @@ end
 /* UUT RX */
 eth_rx #(
 	.IS_10G(IS_10G),
+	.VLAN_TAG(VLAN_TAG),
 	.DATA_W(DATA_W)
 )m_eth_rx(
 	.clk(clk),

@@ -18,14 +18,14 @@ module mac_rx #(
 	input                   term_i,
 	input [LEN_W-1:0]       len_i,
 
-	// to IP layer
+	/* IP layer */
 	output              valid_o,
 	output              start_o,
-	// data
 	output [DATA_W-1:0] data_o,
 	output [LEN_W-1:0]  len_o,
 
-	output crc_err_o /* contains crc error */
+	/* crc error */
+	output crc_err_o
 );
 localparam DATA_BYTES_N = DATA_W/8;
 localparam PRE_N  = 8;
@@ -160,7 +160,7 @@ if ((DATA_W == 64) & (IS_10G))begin
 		assign type_id = cnt_q[2] ? lite_type_id[0] : lite_type_id[1];	
 
 	end // vlan tag
-end else begin
+end else begin : gen_16_32_data_width
 	// DATA_W {16, 32}
 	/* verilator lint_off WIDTHTRUNC */
 	assign type_id = data_i[TYPE_W-1:0];

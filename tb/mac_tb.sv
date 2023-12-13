@@ -22,7 +22,7 @@ reg   clk = 1'b0;
 always clk = #5 ~clk; 
 /* verilator lint_on BLKSEQ */
 
-logic nreset;
+logic                   nreset;
 logic                   cancel_i;
 logic                   valid_i;
 logic [DATA_W-1:0]      data_i;
@@ -61,7 +61,7 @@ endtask
 function automatic logic [HEAD_LEN*8-1:0] set_head(int ipv4_v,int has_vtag );
 	logic [HEAD_LEN*8-1:0] head;
 	/* preambule */
-	logic [63:0] pre = {56'hAAAAAAAAAAAAAA, 8'hAB};
+	logic [63:0] pre = {56'h55555555555555, 8'hD5};
 
 	/* mac addr */
 	// coca cola company
@@ -84,7 +84,7 @@ function automatic logic [HEAD_LEN*8-1:0] set_head(int ipv4_v,int has_vtag );
 		/* verilator lint_on WIDTHTRUNC */
 
 		vlan_tag = {vid, dei, pcp, VLAN_TYPE};
-		head[HEAD_LEN*8-1-:8*6] = {h_type, vlan_tag};	
+		head[HEAD_LEN*8-1:20*8] = {h_type, vlan_tag};	
 	end else begin
 		head[22*8-1-:16] = h_type;	
 	end
@@ -113,7 +113,7 @@ task send_packet(int l, int ipv4_v, int has_vtag);
 	data_i = h[0+:DATA_W];
 	#10
 	start_i = 'b0;
-	for(int i=DATA_BYTES_N; (i*DATA_BYTES_N) < h_l; i++) begin: loop_head_data
+	for(int i=1; (i*DATA_BYTES_N) < h_l; i++) begin: loop_head_data
 		data_i = h[i*DATA_W+:DATA_W];	
 		#10
 		data_i = {DATA_W{1'bx}};
