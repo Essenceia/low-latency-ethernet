@@ -1,6 +1,5 @@
 `define TB_DATA_CYCLES 3
 
-
 module mac_tb;
 localparam DATA_W = 16;
 localparam LEN_W = $clog2(DATA_W/8)+1;

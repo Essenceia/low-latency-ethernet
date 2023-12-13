@@ -40,7 +40,7 @@ localparam HEAD_VTAG_N = HEAD_N + VLAN_N;
 localparam CNT_W = $clog2(HEAD_VTAG_N); 
 
 /* header index */
-localparam TYPE_IDX_TMP = PRE_N + 2*ADDR_N - DATA_BYTES_N;
+localparam TYPE_IDX_TMP = PRE_N + 2*ADDR_N;
 localparam TYPE_IDX_W   = $clog2(TYPE_IDX_TMP);
 /* verilator lint_off WIDTHTRUNC */
 localparam [TYPE_IDX_W-1:0] TYPE_IDX = TYPE_IDX_TMP;
@@ -107,7 +107,7 @@ logic [TYPE_W-1:0] type_id;
 logic              type_v;// type index valid
 logic              type_err_v;// type content matches accepted packet expectations, eg : IPv4
 
-if ((DATA_W == 64) & (IS_10G))begin
+if ((DATA_W == 64) & (IS_10G))begin : gen_64_data_width
 	/* vlan tag and type index or type starts at 20 bytes, so the type field may
 	 * not fall on the first indexes of the data depending on if
 	 * start was received on the first or second lane0.
@@ -120,7 +120,7 @@ if ((DATA_W == 64) & (IS_10G))begin
 	assign lite_type_id[0] = data_i[TYPE_W-1:0];
 	assign lite_type_id[1] = data_i[4*8+TYPE_W-1:4*8];
 
-	if ( VLAN_TAG ) begin
+	if ( VLAN_TAG ) begin : gen_has_vlan
 		logic [TYPE_W-1:0] vlan_id;
 		logic              vlan_idx_v;
 		logic              vlan_v;
@@ -159,22 +159,22 @@ if ((DATA_W == 64) & (IS_10G))begin
 		assign type_v  = cnt_q[4] & ~cnt_q[3] & &(~cnt_q[1:0]); 
 		assign type_id = cnt_q[2] ? lite_type_id[0] : lite_type_id[1];	
 
-	end // vlan tag
+	end // 64 dw, vlan tag
 end else begin : gen_16_32_data_width
 	// DATA_W {16, 32}
 	/* verilator lint_off WIDTHTRUNC */
 	assign type_id = data_i[TYPE_W-1:0];
 	/* verilator lint_on WIDTHTRUNC */
 
-	if ( VLAN_TAG) begin
+	if ( VLAN_TAG) begin : gen_has_vlan
 		logic [TYPE_W-1:0] vlan_id;
 		logic              vlan_idx_v;
 		logic              vlan_v;
 		logic              tpic_v;
 		
 		assign tpic_v = vlan_id == TPIC;
-		assign vlan_v = vlan_idx_v & tpic_v;
 		assign vlan_idx_v = cnt_q[TYPE_IDX_W-1:0] == TYPE_IDX;
+		assign vlan_v = vlan_idx_v & tpic_v;
 		/* verilator lint_off WIDTHTRUNC */
 		assign vlan_id = data_i[TYPE_W-1:0];
 		/* verilator lint_on WIDTHTRUNC */
@@ -182,21 +182,26 @@ end else begin : gen_16_32_data_width
 		/* get type, delay for 1 or 2 cycles depending on
  		 * data size, vlan tag is 4 bytes long */
 		localparam TYPE_CNT_W = DATA_W == 32 ? 1 : 2;
+		logic                  type_lsb_en;
 		reg   [TYPE_CNT_W-1:0] type_lsb_v_q;	
 		logic [TYPE_CNT_W-1:0] type_lsb_v_next;
 
 		/* TODO : 40G : stall progress of shift on invalid blocks
 		 * to support alignement marker removal */
-		assign type_lsb_v_next[TYPE_CNT_W-1] = fsm_head_q & vlan_v & ~cnt_q[2];
+		assign type_lsb_v_next[TYPE_CNT_W-1] = fsm_head_q & vlan_v;
 
 		if ( DATA_W == 16 ) begin
-			assign type_lsb_v_next[0] = vlan_v ? 1'b0 : type_lsb_v_q[1];
+			assign type_lsb_v_next[0] = fsm_head_q & type_lsb_v_q[1];
 		end
 
+		//assign type_lsb_en = fsm_head_q ? valid_i : 1'b1;
 		always @(posedge clk) begin
-			type_lsb_v_q <= type_lsb_v_next;
+			if (valid_i) begin
+				type_lsb_v_q <= type_lsb_v_next;
+			end
 		end	
-
+		/* check if we have no vlan tag, if we do have one, the type will be
+         * given after the 4 data bytes of the vlan tag */  
 		assign type_v = ( vlan_idx_v & ~vlan_v ) | type_lsb_v_q[0];
 
 	end else begin
