@@ -46,10 +46,15 @@ localparam TYPE_IDX_W   = $clog2(TYPE_IDX_TMP);
 localparam [TYPE_IDX_W-1:0] TYPE_IDX = TYPE_IDX_TMP;
 /* verilator lint_on WIDTHTRUNC */
 
-/* type : IPv4 */
-localparam [TYPE_W-1:0] IPV4 = 16'h0800; 
+/* 802.3 clause 3.2.6 : Type/Lenght field
+*  "This two-octet field takes one of two meanings, 
+*  depending on its numeric value. For numerical evaluation,
+*  the first octet is the most significant octet of this field"
+*  
+*  type : IPv4 */
+localparam [TYPE_W-1:0] IPV4 = 16'h0008; 
 /* vlan tag protocol identifier */
-localparam [TYPE_W-1:0] TPIC = 16'h8100;
+localparam [TYPE_W-1:0] TPIC = 16'h0081;
 /* CRC */
 localparam CRC_W = 32;
 

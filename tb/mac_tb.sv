@@ -9,9 +9,9 @@ localparam IS_10G = 1;
 localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1;
 
 localparam TYPE_W = 16;
-//localparam [7:0] START_CHAR = 8'haa;
-localparam [TYPE_W-1:0] VLAN_TYPE = 16'h8100;
-localparam [TYPE_W-1:0] IPV4_TYPE = 16'h0800;
+/* first octe is the most signaificant digit */
+localparam [TYPE_W-1:0] VLAN_TYPE = 16'h81;
+localparam [TYPE_W-1:0] IPV4_TYPE = 16'h8;
 
 localparam HEAD_LEN = 22 + ( VLAN_TAG ? 4 : 0 );
 //localparam TB_PKT_LEN = HEAD_LEN + KEEP_W*`TB_DATA_CYCLES;
@@ -60,7 +60,7 @@ endtask
 function automatic logic [HEAD_LEN*8-1:0] set_head(int ipv4_v,int has_vtag );
 	logic [HEAD_LEN*8-1:0] head;
 	/* preambule */
-	logic [63:0] pre = {56'h55555555555555, 8'hD5};
+	logic [63:0] pre = {8'hD5, 56'h55555555555555};
 
 	/* mac addr */
 	// coca cola company

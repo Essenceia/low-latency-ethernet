@@ -14,7 +14,7 @@ IP for both 10GBASE-R and 4 lane 40GBASE-R, see submodule.
 
 Features :
 
-- Support VLAN tagging
+- Support VLAN tagging, does not support double VLAN tagging
 
 Assumptions :
 
