@@ -279,7 +279,7 @@ end
  * data there is no term signal expected from pcs
  * because of the additional mac footer for the crc. */
 logic end_data_v;
-assign end_data_v = cnt_add >= tot_len_q;
+assign end_data_v = cnt_q >= tot_len_q;
  
 /* fsm */
 
