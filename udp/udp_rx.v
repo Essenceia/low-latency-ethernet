@@ -44,18 +44,22 @@ reg   fsm_idle_q;
 logic fsm_idle_next;
 
 /* cnt bytes receieved */
+logic             cnt_en;
 reg   [CNT_W-1:0] cnt_q;
 logic [CNT_W-1:0] cnt_next;
 logic [CNT_W-1:0] cnt_add;
 logic             unused_cnt_add_of;
 logic             cnt_rst;
 
-assign cnt_rst = fsm_idle_q & ~valid_i;
+assign cnt_rst = fsm_idle_q & ~start_i;
 assign {unused_cnt_add_of, cnt_add} = cnt_q + {{CNT_W-LEN_W{1'b0}}, {LEN_W{valid_i}}&len_i}; 
 assign cnt_next = cnt_rst ? {CNT_W{1'b0}} : cnt_add;
+assign cnt_en = fsm_idle_q | valid_i;
 
 always @(posedge clk) begin
-	cnt_q <= cnt_next;
+	if(cnt_en)begin
+		cnt_q <= cnt_next;
+	end
 end
 /* 0      7 8     15 16    23 24    31
 * +--------+--------+--------+--------+
@@ -70,15 +74,16 @@ end
 * +---------------- ...
 */
 /* udp length */
-logic             udp_len_v;
 reg   [CNT_W-1:0] udp_len_q;
+logic             udp_len_en;
 logic [CNT_W-1:0] udp_len_next;
 
-assign udp_len_v = valid_i & fsm_head_q & ( cnt_q[CNT_HEAD_W-1:0] == 'd3 );
-assign udp_len_next = udp_len_v ? data_i : udp_len_q;
-
+assign udp_len_en = valid_i & fsm_head_q & ( cnt_q[CNT_HEAD_W-1:0] == 'd4 );
+assign udp_len_next = {data_i[7:0], data_i[15:8]};
 always @(posedge clk) begin
-	udp_len_q <= udp_len_next;
+	if(udp_len_en)begin
+		udp_len_q <= udp_len_next;
+	end
 end
 /* head and data end 
  * head end : got all 8 udp head bytes
@@ -115,16 +120,18 @@ logic bypass_rst;
 assign bypass_rst  = cnt_rst;
 assign bypass_v_next = bypass_rst ? 1'b0 : bypass_v_q | dcd_v;
 always @(posedge clk) begin
-	bypass_v_q <= bypass_v_next;
+	if(valid_i)begin
+		bypass_v_q <= bypass_v_next;
+	end
 end
 
 
 // FSM
 assign fsm_idle_next  = cancel_i
-					  | fsm_idle_q & ~valid_i
+					  | fsm_idle_q & ~start_i
 					  | fsm_data_q & end_data_v; 
 assign fsm_head_next  = ~cancel_i & 
-					  ( fsm_idle_q & valid_i
+					  ( fsm_idle_q & start_i
 					  | fsm_head_q & ~end_head_v);
 assign fsm_data_next = ~cancel_i & 
 					 ( fsm_head_q & end_head_v 
@@ -135,9 +142,11 @@ always @(posedge clk) begin
 		fsm_head_q <= 1'b0;
 		fsm_data_q <= 1'b0;
 	end else begin
-		fsm_idle_q <= fsm_idle_next;  
-		fsm_head_q <= fsm_head_next;
-		fsm_data_q <= fsm_data_next;
+		if(valid_i)begin
+			fsm_idle_q <= fsm_idle_next;  
+			fsm_head_q <= fsm_head_next;
+			fsm_data_q <= fsm_data_next;
+		end
 	end
 end
 
