@@ -215,9 +215,9 @@ logic [CS_W-1:0] cs_next;
 logic            cs_en;
 logic            cs_rst;
 
-assign cs_rst = start_i;
+assign cs_rst = fsm_idle_q & ~start_i;
 /* don't include head checksum in the checksum calculation */
-assign cs_en  = valid_i & ~fsm_data_q & ~head_checksum_lite_v;
+assign cs_en  = fsm_idle_q | valid_i & ~fsm_data_q & ~head_checksum_lite_v;
 
 assign { unused_cs_add_of, cs_add} = cs_q + {data_i[7:0],data_i[15:8]};
 assign cs_next = cs_rst ? {CS_W{1'b0}} : cs_add;
@@ -321,5 +321,8 @@ assign len_o   = len_i;
 assign start_o = fsm_head_2q & fsm_data_q;
 /* cs error will be transmitied in the first cycle of valid data
  * for transport layer */
-assign cs_err_o = cs_err_v; 
+assign cs_err_o = cs_err_v;
+/* cancel 
+ * pass on cancel from mac */
+assign cancel_o = cancel_i; 
 endmodule
