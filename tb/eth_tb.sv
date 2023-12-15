@@ -19,6 +19,14 @@ localparam APP_LAST_LEN_W = $clog2(APP_LAST_LEN_N+1);
 
 localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1;
 
+localparam IP_ADDR_W = 32;
+localparam MATCH_IP_SRC_ADDR = 1; 
+localparam MATCH_IP_DST_ADDR = 1; 
+//localparam [IP_ADDR_W-1:0] IP_SRC_ADDR = {8'd206, 8'd200, 8'd127, 8'd128};
+localparam [IP_ADDR_W-1:0] IP_SRC_ADDR = 32'h1;
+//localparam [IP_ADDR_W-1:0] IP_DST_ADDR = {8'd206, 8'd200, 8'd127, 8'd128};
+localparam [IP_ADDR_W-1:0] IP_DST_ADDR = 32'h0;
+	
 reg   clk = 1'b0;
 logic nreset;
 
@@ -172,7 +180,11 @@ end
 eth_rx #(
 	.IS_10G(IS_10G),
 	.VLAN_TAG(VLAN_TAG),
-	.DATA_W(DATA_W)
+	.DATA_W(DATA_W),
+	.MATCH_IP_DST_ADDR(1),
+	.MATCH_IP_SRC_ADDR(1),
+	.IP_SRC_ADDR(IP_SRC_ADDR),
+	.IP_DST_ADDR(IP_DST_ADDR)
 )m_eth_rx(
 	.clk(clk),
 	.nreset(nreset),

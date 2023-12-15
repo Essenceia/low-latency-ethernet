@@ -23,7 +23,7 @@ module ipv4_rx #(
 	
 	localparam PROT_W = 8,/* Protocol */
 	/* filtering, accepted protocol */
-	parameter [PROT_W-1:0] PROTOCOL = 8'd17 /* UDP */
+	parameter [PROT_W-1:0] PROTOCOL = 8'd11 /* UDP */
 )(
 	input clk,
 	input nreset,
@@ -57,7 +57,7 @@ localparam TOT_LEN_W = 16;
 localparam FF_W      = 3; 
 localparam CS_W      = 16;
 localparam [V_W-1:0] VERSION    = 4'b0100; /* v4 */
-localparam [FF_W-1:0] FRAG_FLAG = 3'h3; /* no fragmentation */
+localparam [FF_W-1:0] FRAG_FLAG = 3'b010; /* no fragmentation */
 
 localparam MAX_HEAD_N = 60;/* supporting options by default */
 localparam HEAD_W     = $clog2(MAX_HEAD_N);
@@ -91,6 +91,7 @@ logic fsm_data_next;
  * cnt the number of received header bytes */
 reg   [TOT_LEN_W-1:0] cnt_q;
 logic [TOT_LEN_W-1:0] cnt_next;
+logic                 cnt_en;
 logic [TOT_LEN_W-1:0] cnt_lite_next;
 logic [TOT_LEN_W-1:0] cnt_add;
 logic                  unused_cnt_lite_next_of;
@@ -101,9 +102,9 @@ assign {unused_cnt_lite_next_of, cnt_lite_next} = cnt_q + cnt_add;
 
 assign cnt_rst  = fsm_idle_q & ~start_i;
 assign cnt_next = cnt_rst ? {TOT_LEN_W{1'b0}} : cnt_lite_next;
-
+assign cnt_en = fsm_idle_q | valid_i;
 always @(posedge clk) begin
-	if(valid_i)begin
+	if(cnt_en)begin
 		cnt_q <= cnt_next;
 	end
 end
@@ -114,7 +115,7 @@ logic [IHL_W-1:0] ihl_next;
 logic             ihl_en;
 
 assign ihl_en   = fsm_idle_q;
-assign ihl_next = data_i[7:4];
+assign ihl_next = data_i[3:0];
 
 always @(posedge clk) begin
 	if (ihl_en) begin
@@ -130,18 +131,19 @@ assign end_head_v = cnt_lite_next[IHL_FULL_W-1:IHL_HIDDEN_W] >= ihl_q | |cnt_q[T
 /* head field values and data valid signals */
 logic [V_W-1:0] version;
 logic           version_lite_v;
-assign version        = data_i[V_W-1:0];
+assign version        = data_i[7:4];
 assign version_lite_v = fsm_idle_q; 
 
 logic [FF_W-1:0] frag_flag;
 logic            frag_flag_lite_v;
-assign frag_flag        = data_i[FF_W-1:0];
-assign frag_flag_lite_v = cnt_q[HEAD_W-1:0] == 'd3;
+assign frag_flag        = data_i[7:5];
+assign frag_flag_lite_v = cnt_q[HEAD_W-1:0] == 'd6;
 
+/* protocol field match check */
 logic [PROT_W-1:0] protocol;
 logic              protocol_lite_v;
 assign protocol        = data_i[DATA_W-1-:PROT_W];
-assign protocol_lite_v = cnt_q[HEAD_W-1:0] == 'd4;
+assign protocol_lite_v = cnt_q[HEAD_W-1:0] == 'd8;
 
 /* scr and dst addr match */
 logic src_addr_dcd_v;
@@ -155,7 +157,7 @@ if ( DATA_W == 16 ) begin
 			.ADDR_W(ADDR_W),
 			.ADDR(SRC_ADDR),
 			.IDX_W(HEAD_W),
-			.MSB_IDX(6)
+			.MSB_IDX(12)
 		)m_src_addr_match(
 			.clk(clk),
 			.valid_i(valid_i),
@@ -174,7 +176,7 @@ if ( DATA_W == 16 ) begin
 			.ADDR_W(ADDR_W),
 			.ADDR(DST_ADDR),
 			.IDX_W(HEAD_W),
-			.MSB_IDX(8)
+			.MSB_IDX(16)
 		)m_dst_addr_match(
 			.clk(clk),
 			.valid_i(valid_i),
@@ -263,7 +265,8 @@ logic [TOT_LEN_W-1:0] tot_len_next;
 logic                 tot_len_en;
 
 assign tot_len_en   = (cnt_q == 'd2) & valid_i;
-assign tot_len_next = data_i; 
+/* field is in big endian by default, invert to little endian */
+assign tot_len_next = {data_i[7:0], data_i[15:8]}; 
 always @(posedge clk) begin
 	if(tot_len_en)begin
 		tot_len_q <= tot_len_next;
