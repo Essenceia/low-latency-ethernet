@@ -60,6 +60,10 @@ void gen_new_pkt(
 		data,
 		data_len);
 
+	#ifdef DEBUG
+	print_eth_packet(tv->eth[node_id]);
+	#endif
+
 	/* generate new packet */
 	size_t pkt_len;
 	uint8_t *pkt_data = write_eth_packet(
