@@ -196,12 +196,13 @@ end
 reg   [CS_W-1:0] head_checksum_q;
 logic [CS_W-1:0] head_checksum_next;
 logic            head_checksum_lite_v;
+logic            head_checksum_en;
 
-assign head_checksum_next   = data_i;
-assign head_checksum_lite_v = cnt_q[HEAD_W-1:0] == 'd5;
-
+assign head_checksum_next   = {data_i[7:0], data_i[15:8]};
+assign head_checksum_lite_v = cnt_q[HEAD_W-1:0] == 'd10;
+assign head_checksum_en     = fsm_head_q & head_checksum_lite_v;
 always @(posedge clk) begin
-	if (head_checksum_lite_v) begin
+	if (head_checksum_en) begin
 		head_checksum_q <= head_checksum_next;
 	end
 end
@@ -214,11 +215,11 @@ logic [CS_W-1:0] cs_next;
 logic            cs_en;
 logic            cs_rst;
 
-assign cs_rst = cnt_rst;
+assign cs_rst = start_i;
 /* don't include head checksum in the checksum calculation */
 assign cs_en  = valid_i & ~fsm_data_q & ~head_checksum_lite_v;
 
-assign { unused_cs_add_of, cs_add} = cs_q + data_i;
+assign { unused_cs_add_of, cs_add} = cs_q + {data_i[7:0],data_i[15:8]};
 assign cs_next = cs_rst ? {CS_W{1'b0}} : cs_add;
 
 always @(posedge clk) begin
