@@ -28,7 +28,6 @@ module udp_rx #(
 	// to application layer
 	output              valid_o,
 	output              start_o,
-	//output              last_o,TODO: check if we can do without
 	output [DATA_W-1:0] data_o, 
 	output [LEN_W-1:0]  len_o
 );
@@ -150,10 +149,19 @@ always @(posedge clk) begin
 	end
 end
 
+/* start, flop head for one cycle */
+reg fsm_head_2q;
+always @(posedge clk)begin
+	if (valid_i)begin
+		fsm_head_2q <= fsm_head_q;
+	end
+end
+
 // output
-assign valid_o  = fsm_data_q & valid_i & ~bypass_v_q;
-assign data_o   = data_i;
-assign len_o    = len_i;
+assign valid_o = fsm_data_q & valid_i & ~bypass_v_q;
+assign start_o = fsm_data_q & fsm_head_2q;
+assign data_o  = data_i;
+assign len_o   = len_i;
 `ifdef FORMAL
 initial begin
 	a_reset : assume ( ~nreset );
