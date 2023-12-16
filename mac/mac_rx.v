@@ -314,22 +314,23 @@ end
 logic             crc_start_v;
 logic             crc_zero;
 logic             crc_err_v;
-logic [CRC_W-1:0]  crc;
+logic [CRC_W-1:0] crc;
+logic [DATA_W-1:0] crc_data;
 /* crc starts after preamble */
-assign crc_start_v = cnt_q == 8;
+assign crc_start_v = fsm_head_q & cnt_q == 'd8;
 /* crc test at the end of the packet 
  * TODO: handle when data does not end
  * on payload boundary */
 assign crc_zero = ~|crc;
 assign crc_err_v = ~crc_zero & term_i & valid_i; 
-
-crc #(.DATA_W(DATA_W), .CRC_W(CRC_W))
+assign crc_data = {data_i[7:0], data_i[15:8]};
+crc #(.DATA_W(DATA_W))
 m_crc(
 	.clk(clk),
 	.start_i(crc_start_v),
 	.valid_i(valid_i),
 	.len_i(len_i),
-	.data_i(data_i),
+	.data_i(crc_data),
 	.crc_o(crc)
 );
 /* fsm */

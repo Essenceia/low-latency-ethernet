@@ -16,8 +16,8 @@
 module crc #(
 	parameter DATA_W = 16,
 	localparam KEEP_W = DATA_W/8,
-	parameter LEN_W = $clog2(KEEP_W+1),
-	parameter CRC_W = 32
+	localparam LEN_W = $clog2(KEEP_W+1),
+	localparam CRC_W = 32
 )
 (
   input               clk,
@@ -36,39 +36,42 @@ module crc #(
   assign crc_o = lfsr_q;
   assign lfsr = start_i ? {CRC_W{1'b1}} : lfsr_q;
 if(DATA_W >= 8 ) begin
+	logic [7:0] data8;
+	/* TODO, fix crc logic ... should rewrite module */
+	assign data8 = data_i[15:8];
 
-  assign lfsr_next_arr[0][0] = lfsr[24] ^ lfsr[30] ^ data_i[0] ^ data_i[6];
-  assign lfsr_next_arr[0][1] = lfsr[24] ^ lfsr[25] ^ lfsr[30] ^ lfsr[31] ^ data_i[0] ^ data_i[1] ^ data_i[6] ^ data_i[7];
-  assign lfsr_next_arr[0][2] = lfsr[24] ^ lfsr[25] ^ lfsr[26] ^ lfsr[30] ^ lfsr[31] ^ data_i[0] ^ data_i[1] ^ data_i[2] ^ data_i[6] ^ data_i[7];
-  assign lfsr_next_arr[0][3] = lfsr[25] ^ lfsr[26] ^ lfsr[27] ^ lfsr[31] ^ data_i[1] ^ data_i[2] ^ data_i[3] ^ data_i[7];
-  assign lfsr_next_arr[0][4] = lfsr[24] ^ lfsr[26] ^ lfsr[27] ^ lfsr[28] ^ lfsr[30] ^ data_i[0] ^ data_i[2] ^ data_i[3] ^ data_i[4] ^ data_i[6];
-  assign lfsr_next_arr[0][5] = lfsr[24] ^ lfsr[25] ^ lfsr[27] ^ lfsr[28] ^ lfsr[29] ^ lfsr[30] ^ lfsr[31] ^ data_i[0] ^ data_i[1] ^ data_i[3] ^ data_i[4] ^ data_i[5] ^ data_i[6] ^ data_i[7];
-  assign lfsr_next_arr[0][6] = lfsr[25] ^ lfsr[26] ^ lfsr[28] ^ lfsr[29] ^ lfsr[30] ^ lfsr[31] ^ data_i[1] ^ data_i[2] ^ data_i[4] ^ data_i[5] ^ data_i[6] ^ data_i[7];
-  assign lfsr_next_arr[0][7] = lfsr[24] ^ lfsr[26] ^ lfsr[27] ^ lfsr[29] ^ lfsr[31] ^ data_i[0] ^ data_i[2] ^ data_i[3] ^ data_i[5] ^ data_i[7];
-  assign lfsr_next_arr[0][8] = lfsr[0] ^ lfsr[24] ^ lfsr[25] ^ lfsr[27] ^ lfsr[28] ^ data_i[0] ^ data_i[1] ^ data_i[3] ^ data_i[4];
-  assign lfsr_next_arr[0][9] = lfsr[1] ^ lfsr[25] ^ lfsr[26] ^ lfsr[28] ^ lfsr[29] ^ data_i[1] ^ data_i[2] ^ data_i[4] ^ data_i[5];
-  assign lfsr_next_arr[0][10] = lfsr[2] ^ lfsr[24] ^ lfsr[26] ^ lfsr[27] ^ lfsr[29] ^ data_i[0] ^ data_i[2] ^ data_i[3] ^ data_i[5];
-  assign lfsr_next_arr[0][11] = lfsr[3] ^ lfsr[24] ^ lfsr[25] ^ lfsr[27] ^ lfsr[28] ^ data_i[0] ^ data_i[1] ^ data_i[3] ^ data_i[4];
-  assign lfsr_next_arr[0][12] = lfsr[4] ^ lfsr[24] ^ lfsr[25] ^ lfsr[26] ^ lfsr[28] ^ lfsr[29] ^ lfsr[30] ^ data_i[0] ^ data_i[1] ^ data_i[2] ^ data_i[4] ^ data_i[5] ^ data_i[6];
-  assign lfsr_next_arr[0][13] = lfsr[5] ^ lfsr[25] ^ lfsr[26] ^ lfsr[27] ^ lfsr[29] ^ lfsr[30] ^ lfsr[31] ^ data_i[1] ^ data_i[2] ^ data_i[3] ^ data_i[5] ^ data_i[6] ^ data_i[7];
-  assign lfsr_next_arr[0][14] = lfsr[6] ^ lfsr[26] ^ lfsr[27] ^ lfsr[28] ^ lfsr[30] ^ lfsr[31] ^ data_i[2] ^ data_i[3] ^ data_i[4] ^ data_i[6] ^ data_i[7];
-  assign lfsr_next_arr[0][15] = lfsr[7] ^ lfsr[27] ^ lfsr[28] ^ lfsr[29] ^ lfsr[31] ^ data_i[3] ^ data_i[4] ^ data_i[5] ^ data_i[7];
-  assign lfsr_next_arr[0][16] = lfsr[8] ^ lfsr[24] ^ lfsr[28] ^ lfsr[29] ^ data_i[0] ^ data_i[4] ^ data_i[5];
-  assign lfsr_next_arr[0][17] = lfsr[9] ^ lfsr[25] ^ lfsr[29] ^ lfsr[30] ^ data_i[1] ^ data_i[5] ^ data_i[6];
-  assign lfsr_next_arr[0][18] = lfsr[10] ^ lfsr[26] ^ lfsr[30] ^ lfsr[31] ^ data_i[2] ^ data_i[6] ^ data_i[7];
-  assign lfsr_next_arr[0][19] = lfsr[11] ^ lfsr[27] ^ lfsr[31] ^ data_i[3] ^ data_i[7];
-  assign lfsr_next_arr[0][20] = lfsr[12] ^ lfsr[28] ^ data_i[4];
-  assign lfsr_next_arr[0][21] = lfsr[13] ^ lfsr[29] ^ data_i[5];
-  assign lfsr_next_arr[0][22] = lfsr[14] ^ lfsr[24] ^ data_i[0];
-  assign lfsr_next_arr[0][23] = lfsr[15] ^ lfsr[24] ^ lfsr[25] ^ lfsr[30] ^ data_i[0] ^ data_i[1] ^ data_i[6];
-  assign lfsr_next_arr[0][24] = lfsr[16] ^ lfsr[25] ^ lfsr[26] ^ lfsr[31] ^ data_i[1] ^ data_i[2] ^ data_i[7];
-  assign lfsr_next_arr[0][25] = lfsr[17] ^ lfsr[26] ^ lfsr[27] ^ data_i[2] ^ data_i[3];
-  assign lfsr_next_arr[0][26] = lfsr[18] ^ lfsr[24] ^ lfsr[27] ^ lfsr[28] ^ lfsr[30] ^ data_i[0] ^ data_i[3] ^ data_i[4] ^ data_i[6];
-  assign lfsr_next_arr[0][27] = lfsr[19] ^ lfsr[25] ^ lfsr[28] ^ lfsr[29] ^ lfsr[31] ^ data_i[1] ^ data_i[4] ^ data_i[5] ^ data_i[7];
-  assign lfsr_next_arr[0][28] = lfsr[20] ^ lfsr[26] ^ lfsr[29] ^ lfsr[30] ^ data_i[2] ^ data_i[5] ^ data_i[6];
-  assign lfsr_next_arr[0][29] = lfsr[21] ^ lfsr[27] ^ lfsr[30] ^ lfsr[31] ^ data_i[3] ^ data_i[6] ^ data_i[7];
-  assign lfsr_next_arr[0][30] = lfsr[22] ^ lfsr[28] ^ lfsr[31] ^ data_i[4] ^ data_i[7];
-  assign lfsr_next_arr[0][31] = lfsr[23] ^ lfsr[29] ^ data_i[5];
+  assign lfsr_next_arr[0][0] = lfsr[24] ^ lfsr[30] ^ data8[0] ^ data8[6];
+  assign lfsr_next_arr[0][1] = lfsr[24] ^ lfsr[25] ^ lfsr[30] ^ lfsr[31] ^ data8[0] ^ data8[1] ^ data8[6] ^ data8[7];
+  assign lfsr_next_arr[0][2] = lfsr[24] ^ lfsr[25] ^ lfsr[26] ^ lfsr[30] ^ lfsr[31] ^ data8[0] ^ data8[1] ^ data8[2] ^ data8[6] ^ data8[7];
+  assign lfsr_next_arr[0][3] = lfsr[25] ^ lfsr[26] ^ lfsr[27] ^ lfsr[31] ^ data8[1] ^ data8[2] ^ data8[3] ^ data8[7];
+  assign lfsr_next_arr[0][4] = lfsr[24] ^ lfsr[26] ^ lfsr[27] ^ lfsr[28] ^ lfsr[30] ^ data8[0] ^ data8[2] ^ data8[3] ^ data8[4] ^ data8[6];
+  assign lfsr_next_arr[0][5] = lfsr[24] ^ lfsr[25] ^ lfsr[27] ^ lfsr[28] ^ lfsr[29] ^ lfsr[30] ^ lfsr[31] ^ data8[0] ^ data8[1] ^ data8[3] ^ data8[4] ^ data8[5] ^ data8[6] ^ data8[7];
+  assign lfsr_next_arr[0][6] = lfsr[25] ^ lfsr[26] ^ lfsr[28] ^ lfsr[29] ^ lfsr[30] ^ lfsr[31] ^ data8[1] ^ data8[2] ^ data8[4] ^ data8[5] ^ data8[6] ^ data8[7];
+  assign lfsr_next_arr[0][7] = lfsr[24] ^ lfsr[26] ^ lfsr[27] ^ lfsr[29] ^ lfsr[31] ^ data8[0] ^ data8[2] ^ data8[3] ^ data8[5] ^ data8[7];
+  assign lfsr_next_arr[0][8] = lfsr[0] ^ lfsr[24] ^ lfsr[25] ^ lfsr[27] ^ lfsr[28] ^ data8[0] ^ data8[1] ^ data8[3] ^ data8[4];
+  assign lfsr_next_arr[0][9] = lfsr[1] ^ lfsr[25] ^ lfsr[26] ^ lfsr[28] ^ lfsr[29] ^ data8[1] ^ data8[2] ^ data8[4] ^ data8[5];
+  assign lfsr_next_arr[0][10] = lfsr[2] ^ lfsr[24] ^ lfsr[26] ^ lfsr[27] ^ lfsr[29] ^ data8[0] ^ data8[2] ^ data8[3] ^ data8[5];
+  assign lfsr_next_arr[0][11] = lfsr[3] ^ lfsr[24] ^ lfsr[25] ^ lfsr[27] ^ lfsr[28] ^ data8[0] ^ data8[1] ^ data8[3] ^ data8[4];
+  assign lfsr_next_arr[0][12] = lfsr[4] ^ lfsr[24] ^ lfsr[25] ^ lfsr[26] ^ lfsr[28] ^ lfsr[29] ^ lfsr[30] ^ data8[0] ^ data8[1] ^ data8[2] ^ data8[4] ^ data8[5] ^ data8[6];
+  assign lfsr_next_arr[0][13] = lfsr[5] ^ lfsr[25] ^ lfsr[26] ^ lfsr[27] ^ lfsr[29] ^ lfsr[30] ^ lfsr[31] ^ data8[1] ^ data8[2] ^ data8[3] ^ data8[5] ^ data8[6] ^ data8[7];
+  assign lfsr_next_arr[0][14] = lfsr[6] ^ lfsr[26] ^ lfsr[27] ^ lfsr[28] ^ lfsr[30] ^ lfsr[31] ^ data8[2] ^ data8[3] ^ data8[4] ^ data8[6] ^ data8[7];
+  assign lfsr_next_arr[0][15] = lfsr[7] ^ lfsr[27] ^ lfsr[28] ^ lfsr[29] ^ lfsr[31] ^ data8[3] ^ data8[4] ^ data8[5] ^ data8[7];
+  assign lfsr_next_arr[0][16] = lfsr[8] ^ lfsr[24] ^ lfsr[28] ^ lfsr[29] ^ data8[0] ^ data8[4] ^ data8[5];
+  assign lfsr_next_arr[0][17] = lfsr[9] ^ lfsr[25] ^ lfsr[29] ^ lfsr[30] ^ data8[1] ^ data8[5] ^ data8[6];
+  assign lfsr_next_arr[0][18] = lfsr[10] ^ lfsr[26] ^ lfsr[30] ^ lfsr[31] ^ data8[2] ^ data8[6] ^ data8[7];
+  assign lfsr_next_arr[0][19] = lfsr[11] ^ lfsr[27] ^ lfsr[31] ^ data8[3] ^ data8[7];
+  assign lfsr_next_arr[0][20] = lfsr[12] ^ lfsr[28] ^ data8[4];
+  assign lfsr_next_arr[0][21] = lfsr[13] ^ lfsr[29] ^ data8[5];
+  assign lfsr_next_arr[0][22] = lfsr[14] ^ lfsr[24] ^ data8[0];
+  assign lfsr_next_arr[0][23] = lfsr[15] ^ lfsr[24] ^ lfsr[25] ^ lfsr[30] ^ data8[0] ^ data8[1] ^ data8[6];
+  assign lfsr_next_arr[0][24] = lfsr[16] ^ lfsr[25] ^ lfsr[26] ^ lfsr[31] ^ data8[1] ^ data8[2] ^ data8[7];
+  assign lfsr_next_arr[0][25] = lfsr[17] ^ lfsr[26] ^ lfsr[27] ^ data8[2] ^ data8[3];
+  assign lfsr_next_arr[0][26] = lfsr[18] ^ lfsr[24] ^ lfsr[27] ^ lfsr[28] ^ lfsr[30] ^ data8[0] ^ data8[3] ^ data8[4] ^ data8[6];
+  assign lfsr_next_arr[0][27] = lfsr[19] ^ lfsr[25] ^ lfsr[28] ^ lfsr[29] ^ lfsr[31] ^ data8[1] ^ data8[4] ^ data8[5] ^ data8[7];
+  assign lfsr_next_arr[0][28] = lfsr[20] ^ lfsr[26] ^ lfsr[29] ^ lfsr[30] ^ data8[2] ^ data8[5] ^ data8[6];
+  assign lfsr_next_arr[0][29] = lfsr[21] ^ lfsr[27] ^ lfsr[30] ^ lfsr[31] ^ data8[3] ^ data8[6] ^ data8[7];
+  assign lfsr_next_arr[0][30] = lfsr[22] ^ lfsr[28] ^ lfsr[31] ^ data8[4] ^ data8[7];
+  assign lfsr_next_arr[0][31] = lfsr[23] ^ lfsr[29] ^ data8[5];
 
 end 
 if(DATA_W >= 16) begin

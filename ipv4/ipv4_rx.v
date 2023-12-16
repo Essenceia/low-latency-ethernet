@@ -282,7 +282,6 @@ logic end_data_v;
 assign end_data_v = cnt_q >= tot_len_q;
  
 /* fsm */
-
 assign fsm_idle_next = cancel_i 
 					 | fsm_idle_q & ~start_i
 					 | fsm_data_q & end_data_v;
