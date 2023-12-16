@@ -234,7 +234,7 @@ lint_eth: $(eth_deps)
 tbs := crc mac
 
 # Dependencies for each testbench
-crc_deps += $(REF_DIR)/lfsr.v $(TB_DIR)/crc_tb.sv
+crc_deps += $(TB_DIR)/crc_tb.sv
 mac_deps += $(TB_DIR)/mac_tb.sv
 
 # Standard run recipe to build a given testbench
