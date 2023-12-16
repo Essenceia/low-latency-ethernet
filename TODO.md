@@ -1,32 +1,22 @@
 # TODO list
 
-- create tb and connect rx and tx pipe to check for xprop
-- crc :
+- mac crc rtl :
     - update crc implementation to specify per byte
     data validity : needed to calculate crc when data
     valid len % crc\_data\_w != 0
-
-- Write C libs for tb, need to support :
-    - crc generation and check
-    - mac packet generation
-    - get output data per cycle
-
-- rx tb:
-    - test bypass funcitonality : wrong type/ error in mac
-    - test cancel
+    If anyone is reading this, I am NOT proud of the current
+    mac crc module ... but other tasks have higher priority
 
 - tx:
     - move mac footer from eth tx to it's own module
+    
+- homelab tb:
     - check if switch support IPG of zero, if not enforce IPG of >=96 ( 802.3 ) 
 
 - tb:
-    - cut packet into data width chunks
-    - re-write mac interface ( reuse the one on the phy ? )
-    - make a schematic to plan next work
+    - drive expected udp output
+    - add verilator support
     - move tb\_rand into utils lib 
-
-- rtl:
     - add support for bubbles in data validity from PHY 
-    - add cancel signals
-    - add start signals
+    - add cancels phy errors on mac interface to test cancel logic
 
