@@ -150,7 +150,7 @@ void gen_new_pkt(
 		/* data */
 		while(pos+1+DATA_WIDTH_BYTE < data_len){
 			seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
-			fill_trans_data(trans, DATA_WIDTH_BYTE, seg, TRANS_DATA_START);
+			fill_trans_data(trans, DATA_WIDTH_BYTE, seg, TRANS_DATA_DATA);
 			trans_data_s_fifo_push(tv->data_fifo, trans);
 		}
 		/* term */

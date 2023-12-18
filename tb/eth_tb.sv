@@ -190,9 +190,21 @@ always @(posedge clk) begin
 		$tb_trans(tb_exp_app_valid_o,
 			tb_exp_app_start_o,
 			tb_exp_app_len_o,
-			tb_exp_app_data_o);	
-	end
+			tb_exp_app_data_o);
+		/* compare values */
+		assert(tb_exp_app_valid_o == app_valid_o);
+		assert(tb_exp_app_start_o == app_start_o);
+		assert(tb_exp_app_len_o == app_len_o);
+		//genvar x;
+		//generate
+		//for(x=0; x<KEEP_W; x++) begin
+		//	/* data match */
+		//	assert((tb_exp_app_len_o < x)|((tb_exp_app_len_o >= x) & (tb_app_data_o[x*8+:8] == app_data_o[x*8+:8]))); 
+		//end
+		//endgenerate
+	end	
 end
+
 
 /* UUT RX */
 eth_rx #(
