@@ -98,9 +98,9 @@ logic [PORT_W-1:0] src_port;
 logic              dst_port_cnt_v;
 logic [PORT_W-1:0] dst_port;
 assign src_port_cnt_v = ( cnt_q[CNT_HEAD_W-1:0] == 'd0 ) & fsm_idle_q;
-assign src_port       = data_i;
+assign src_port       = {data_i[7:0],data_i[15:8]};
 assign dst_port_cnt_v = ( cnt_q[CNT_HEAD_W-1:0] == 'd2 ) & fsm_head_q;
-assign dst_port       = data_i;
+assign dst_port       = {data_i[7:0],data_i[15:8]};
 
 /* discard signals */ 
 logic dcd_v;
@@ -115,11 +115,13 @@ assign dcd_v = valid_i & ( src_dcd_v | dst_dcd_v | ip_cs_err_i );
 reg   bypass_v_q;
 logic bypass_v_next;
 logic bypass_rst;
+logic bypass_en;
 
 assign bypass_rst  = cnt_rst;
 assign bypass_v_next = bypass_rst ? 1'b0 : bypass_v_q | dcd_v;
+assign bypass_en = fsm_idle_q | valid_i;
 always @(posedge clk) begin
-	if(valid_i)begin
+	if(fsm_idle_q)begin
 		bypass_v_q <= bypass_v_next;
 	end
 end
