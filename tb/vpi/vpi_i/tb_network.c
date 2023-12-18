@@ -77,6 +77,28 @@ static int tb_trans_calltf(char*user_data)
 {
 	/* TODO network handler */
 	info("$tb_trans called\n");
+		
+	vpiHandle sys = vpi_handle(vpiSysTfCall, 0);
+	assert(sys);
+	vpiHandle argv = vpi_iterate(vpiArgument, sys);
+	assert(argv);
+
+	// handlers : the order matters
+	vpiHandle h_valid_o = vpi_scan(argv);
+	assert(h_valid_o);
+	vpiHandle h_start_o = vpi_scan(argv);
+	assert(h_start_o);
+	vpiHandle h_len_o = vpi_scan(argv);
+	assert(h_len_o);
+	vpiHandle h_data_o = vpi_scan(argv);
+	assert(h_data_o);
+
+	tb_udp_data_rx(
+		h_valid_o,
+		h_data_o,
+		h_len_o,
+		h_start_o);
+	
 	return 0;
 }
 

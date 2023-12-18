@@ -17,4 +17,13 @@ void tb_mac_rx(
 	vpiHandle h_term_v_i,
 	vpiHandle h_len_i);
 
+/* udp data output interfave
+ * dirve expected output on the rx udp to 
+ * application layer interface */
+void tb_udp_data_rx(
+	vpiHandle h_valid_o,
+	vpiHandle h_data_o,
+	vpiHandle h_len_o,
+	vpiHandle h_start_o
+);
 #endif // TB_H

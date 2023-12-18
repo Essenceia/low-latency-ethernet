@@ -31,7 +31,6 @@ void fill_trans_data(
 	trans_data_state_e state
 );
 
-
 void print_trans_data(
 	trans_data_s *t
 );
@@ -41,8 +40,8 @@ void print_trans_data(
 /* fifo */
 static void trans_data_fifo_dtor(
 	trans_data_s *e
-) {
-}
+){}
+
 static void trans_data_fifo_log(
 	trans_data_s *e
 )

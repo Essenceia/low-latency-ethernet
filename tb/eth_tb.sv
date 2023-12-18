@@ -176,6 +176,14 @@ initial begin
 	$finish;		
 end
 
+/* compare expected values */
+always @(posedge clk) begin
+	if(nreset & app_valid_o)begin
+		/* get expected values from tb */
+			
+	end
+end
+
 /* UUT RX */
 eth_rx #(
 	.IS_10G(IS_10G),
