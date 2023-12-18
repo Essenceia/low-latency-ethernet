@@ -33,6 +33,7 @@ module eth_rx #(
 	
 	/* to application */
 	output                  app_valid_o,
+	output                  app_start_o,
 	output                  app_cancel_o,
 	output [DATA_W-1:0]     app_data_o,
 	output [LEN_W-1:0]      app_len_o
@@ -126,7 +127,7 @@ udp_rx #(
 	.len_i      (t_len),
 	.ip_cs_err_i(ip_cs_err),
 	.valid_o    (app_valid_o),
-	.start_o    (),
+	.start_o    (app_start_o),
 	.data_o     (app_data_o), 
 	.len_o      (app_len_o)
 );

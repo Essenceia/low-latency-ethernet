@@ -41,6 +41,7 @@ logic [LEN_W-1:0]       mac_len_i;
 
 /* to application */
 logic                  app_valid_o;
+logic                  app_start_o;
 logic                  app_cancel_o;
 logic [DATA_W-1:0]     app_data_o;
 logic [LEN_W-1:0]      app_len_o;
@@ -70,6 +71,12 @@ logic [BLOCK_LEN_W-1:0] phy_term_len_o;
 /* verilator lint_off BLKSEQ */
 always clk = #5 ~clk;
 /* verilator lint_on BLKSEQ */
+
+/* tb expected values */
+logic                  tb_exp_app_valid_o;
+logic                  tb_exp_app_start_o;
+logic [DATA_W-1:0]     tb_exp_app_data_o;
+logic [LEN_W-1:0]      tb_exp_app_len_o;
 
 task set_rx_idle();
 	mac_valid_i = 1'b0;
@@ -180,7 +187,10 @@ end
 always @(posedge clk) begin
 	if(nreset & app_valid_o)begin
 		/* get expected values from tb */
-			
+		$tb_trans(tb_exp_app_valid_o,
+			tb_exp_app_start_o,
+			tb_exp_app_len_o,
+			tb_exp_app_data_o);	
 	end
 end
 
@@ -203,6 +213,7 @@ eth_rx #(
 	.mac_term_i(mac_term_i),
 	.mac_len_i(mac_len_i),
 	.app_valid_o(app_valid_o),
+	.app_start_o(app_start_o),
 	.app_cancel_o(app_cancel_o),
 	.app_data_o(app_data_o),
 	.app_len_o(app_len_o)
