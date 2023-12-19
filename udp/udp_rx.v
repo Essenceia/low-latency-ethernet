@@ -31,6 +31,7 @@ module udp_rx #(
 	output [DATA_W-1:0] data_o, 
 	output [LEN_W-1:0]  len_o
 );
+localparam KEEP_W = DATA_W/8;
 localparam CNT_W = 16;
 localparam HEAD_N = 8;
 localparam CNT_HEAD_W = $clog2(HEAD_N+1);
@@ -163,7 +164,9 @@ end
 assign valid_o = fsm_data_q & valid_i & ~bypass_v_q;
 assign start_o = fsm_data_q & fsm_head_2q;
 assign data_o  = data_i;
-assign len_o   = len_i;
+/* for data_width==16, allways full length (2) with a potencial exeption 
+ * on the last payload when len is not a power of 2, we have lenght = 1 */
+assign len_o = end_data_v ? {~udp_len_q[0],udp_len_q[0]}: KEEP_W;
 `ifdef FORMAL
 initial begin
 	a_reset : assume ( ~nreset );
