@@ -251,7 +251,7 @@ assign crc_data_len = app_last_i? app_len_i : KEEP_W;
 /* verilator lint_on WIDTHEXPAND */
 /* verilator lint_on WIDTHTRUNC */
 
-crc #(.DATA_W(DATA_W),.CRC_W(MAC_CRC_W)
+crc #(.DATA_W(DATA_W))
 )m_crc_tx(
 	.clk(clk),
 	.valid_i(crc_data_v),
