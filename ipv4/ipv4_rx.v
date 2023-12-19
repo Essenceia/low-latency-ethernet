@@ -316,7 +316,9 @@ end
  * input data = output data, input len = output len */
 assign valid_o = valid_i & fsm_data_q &  ~bypass_v_q;
 assign data_o  = data_i;
-assign len_o   = len_i;
+/* for data_width==16, allways full length (2) with a potencial exeption 
+ * on the last payload when len is not a power of 2, we have lenght = 1 */
+assign len_o   = end_data_v ? { ~tot_len_q[0], tot_len_q[0]} : (DATA_W/8);
 assign start_o = fsm_head_2q & fsm_data_q;
 /* cs error will be transmitied in the first cycle of valid data
  * for transport layer */

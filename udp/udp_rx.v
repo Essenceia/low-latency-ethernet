@@ -164,9 +164,7 @@ end
 assign valid_o = fsm_data_q & valid_i & ~bypass_v_q;
 assign start_o = fsm_data_q & fsm_head_2q;
 assign data_o  = data_i;
-/* for data_width==16, allways full length (2) with a potencial exeption 
- * on the last payload when len is not a power of 2, we have lenght = 1 */
-assign len_o = end_data_v ? {~udp_len_q[0],udp_len_q[0]}: KEEP_W;
+assign len_o   = len_i;
 `ifdef FORMAL
 initial begin
 	a_reset : assume ( ~nreset );
@@ -183,6 +181,9 @@ always @(posedge clk) begin
 			assert ( ~( valid_o & ( len_o < i )) | ( valid_o & (len_o >= i) & ~$isunknown( data_o[i*8+7:i*8] )));
 		end
 	endgenerate
+
+	/* check send length matches data end */
+	assert(~(valid_i & end_data_v) | (valid_i & end_data_v & ( len_i == {~udp_len_q[0],udp_len_q[0})));
 end
 `endif
 endmodule
