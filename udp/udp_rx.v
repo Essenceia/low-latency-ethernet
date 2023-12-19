@@ -90,7 +90,7 @@ end
 logic end_head_v;
 logic end_data_v;
 assign end_head_v = cnt_add[CNT_HEAD_W-1:0] == 'd8;
-assign end_data_v = cnt_add >= udp_len_q;
+assign end_data_v = cnt_q >= udp_len_q;
   
 /* port */
 logic              src_port_cnt_v;
