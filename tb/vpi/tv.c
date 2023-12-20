@@ -39,6 +39,9 @@ tv_s* init_tv(){
 	tv_p->mac_fifo = mac_intf_s_fifo_ctor();
 	tv_p->data_fifo = trans_data_s_fifo_ctor();
 
+	/* pkt debug id */
+	tv_p->pkt_id = 0;
+
 	return tv_p; 
 }
 
@@ -48,6 +51,10 @@ void gen_new_pkt(
 ){
 
 	assert(node_id <= NODE_CNT);
+
+	/* increment pkt debug id, count sounds start at 1 to match
+ 	 * wireshark pkt cnt */
+	tv->pkt_id += 1;
 
 	/* create new rand packet, fill transport data*/
 	size_t data_len = tb_rand_get_packet_len();
@@ -61,6 +68,7 @@ void gen_new_pkt(
 		data_len);
 
 	#ifdef DEBUG
+	info("node id %ld\n", node_id);
 	print_eth_packet(tv->eth[node_id]);
 	#endif
 
@@ -78,24 +86,31 @@ void gen_new_pkt(
 	data_t seg = get_nxt_pkt_seg(pkt_data, &pos, &seg_len, pkt_len);
 	
 	// TODO allow randomly starting on start 2 if supported
-	mac_intf_s *mac = init_mac_intf(MAC_START,seg,DATA_WIDTH_BYTE); 
+	mac_intf_s *mac = init_mac_intf(MAC_START,seg,DATA_WIDTH_BYTE, tv->pkt_id); 
 	mac_intf_s_fifo_push(tv->mac_fifo,mac);
-	
+
+	#ifdef DEBUG_POS	
 	info("pos/pkt_len %ld/%ld\n", pos+DATA_WIDTH_BYTE , pkt_len);		
+	#endif
+
 	/* send data until term */
 	while(pos+DATA_WIDTH_BYTE < pkt_len){
+		#ifdef DEBUG_POS
 		info("pos/pkt_len %ld/%ld\n", pos, pkt_len);
-	
+		#endif
+
 		seg = get_nxt_pkt_seg(pkt_data,	&pos, &seg_len,	pkt_len);
-		fill_mac_intf(mac, MAC_DATA, seg, seg_len);	
+		fill_mac_intf(mac, MAC_DATA, seg, seg_len, tv->pkt_id);	
 		mac_intf_s_fifo_push(tv->mac_fifo,mac);
 			
 	}
+	#ifdef DEBUG_POS
 	info("last packet\n");
+	#endif
 
 	/* term */
 	seg = get_nxt_pkt_seg(pkt_data,&pos,&seg_len,pkt_len);
-	fill_mac_intf(mac,get_mac_term(seg_len),seg,seg_len);
+	fill_mac_intf(mac,get_mac_term(seg_len),seg,seg_len, tv->pkt_id);
 	mac_intf_s_fifo_push(tv->mac_fifo,mac);
 
 	/* append idle cycles if the last valid transfer wasn't on the
@@ -121,7 +136,7 @@ void gen_new_pkt(
  	 */
 	int idle_cnt = (8 - ((int)pos)%8)/DATA_WIDTH_BYTE;
 	while(idle_cnt>0){
-		fill_mac_intf(mac,MAC_INVALID,0,0);
+		fill_mac_intf(mac,MAC_INVALID,0,0,0);
 		mac_intf_s_fifo_push(tv->mac_fifo,mac);
 		idle_cnt -= DATA_WIDTH_BYTE;
 	}
@@ -132,7 +147,7 @@ void gen_new_pkt(
  	 * mac/ip/port values, we expect the transport data to be driven
  	 * on the output of the transport layer.
  	 * Segement transport data and start adding it to fifo */
-	if (!node_id){
+	if (node_id == 0){
 		/* TODO: this version of the testbench is written for 
 	 	 * DATA_WIDTH == 16, we are guarantied that the transport
 	 	 * data will allways start at the begining of a bus payload
@@ -144,19 +159,19 @@ void gen_new_pkt(
 		/* start */
 		pos = 0;
 		seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
-		trans_data_s *trans = init_trans_data(DATA_WIDTH_BYTE, seg, TRANS_DATA_START); 	
+		trans_data_s *trans = init_trans_data(DATA_WIDTH_BYTE, seg, TRANS_DATA_START, tv->pkt_id); 	
 		trans_data_s_fifo_push(tv->data_fifo,trans);
 
 		/* data */
 		while(pos+DATA_WIDTH_BYTE < data_len){
 			seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
-			fill_trans_data(trans, DATA_WIDTH_BYTE, seg, TRANS_DATA_DATA);
+			fill_trans_data(trans, DATA_WIDTH_BYTE, seg, TRANS_DATA_DATA,tv->pkt_id);
 			trans_data_s_fifo_push(tv->data_fifo, trans);
 		}
 		/* term */
 		seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
-		printf("trans data term pos %ld seg_len %ld data_len %ld\n", pos, seg_len, data_len);
-		fill_trans_data(trans, seg_len,	seg, TRANS_DATA_TERM);
+		info("trans data term pos %ld seg_len %d data_len %ld\n", pos, seg_len, data_len);
+		fill_trans_data(trans, seg_len,	seg, TRANS_DATA_TERM, tv->pkt_id);
 		trans_data_s_fifo_push(tv->data_fifo, trans);
 		
 		free(trans);
@@ -194,7 +209,9 @@ data_t get_nxt_pkt_seg(
 	*seg_len =(uint8_t) i;
 	*pos += i;
 
+	#ifdef DEBUG_POS
 	info("pos %ld\n",*pos);
+	#endif
 
 	return seg;
 }

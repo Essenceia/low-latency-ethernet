@@ -1,4 +1,4 @@
-`define TB_LOOP_CNT 1000
+`define TB_LOOP_CNT 10000
 
 `ifdef INTERACTIVE
 /* Adding extra 10 cycles for debuging after failure detection */
@@ -40,7 +40,10 @@ localparam MATCH_IP_DST_ADDR = 1;
 localparam [IP_ADDR_W-1:0] IP_SRC_ADDR = 32'h1;
 //localparam [IP_ADDR_W-1:0] IP_DST_ADDR = {8'd206, 8'd200, 8'd127, 8'd128};
 localparam [IP_ADDR_W-1:0] IP_DST_ADDR = 32'h0;
-	
+
+/* TB */
+localparam DEBUG_ID_W = 32;
+
 reg   clk = 1'b0;
 logic nreset;
 
@@ -86,11 +89,15 @@ logic [BLOCK_LEN_W-1:0] phy_term_len_o;
 always clk = #5 ~clk;
 /* verilator lint_on BLKSEQ */
 
+/* tb debug id */
+logic [DEBUG_ID_W-1:0] pkt_debug_id_i;
+
 /* tb expected values */
 logic                  tb_exp_app_valid_o;
 logic                  tb_exp_app_start_o;
 logic [DATA_W-1:0]     tb_exp_app_data_o;
 logic [LEN_W-1:0]      tb_exp_app_len_o;
+logic [DEBUG_ID_W-1:0] tb_exp_app_debug_id_o;
 
 task set_rx_idle();
 	mac_valid_i = 1'b0;
@@ -194,7 +201,8 @@ initial begin
 			mac_data_i,
 			mac_start_i,
 			mac_term_i,
-			mac_len_i);
+			mac_len_i,
+			pkt_debug_id_i);
 	end
 	#10
 	$tb_free();	
@@ -219,7 +227,8 @@ always @(posedge clk) begin
 		$tb_trans(tb_exp_app_valid_o,
 			tb_exp_app_start_o,
 			tb_exp_app_len_o,
-			tb_exp_app_data_o);
+			tb_exp_app_data_o,
+			tb_exp_app_debug_id_o);
 		/* compare values */
 		`assert_stop(tb_exp_app_valid_o == app_valid_o);
 		`assert_stop(tb_exp_app_start_o == app_start_o);

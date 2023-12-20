@@ -41,8 +41,6 @@ static int tb_init_calltf(char*user_data)
 
 static int tb_mac_calltf(char*user_data)
 {
-	info("$tb_mac called\n");
-	
 	vpiHandle sys = vpi_handle(vpiSysTfCall, 0);
 	assert(sys);
 	vpiHandle argv = vpi_iterate(vpiArgument, sys);
@@ -61,6 +59,8 @@ static int tb_mac_calltf(char*user_data)
 	assert(h_term_i);
 	vpiHandle h_len_i = vpi_scan(argv);
 	assert(h_len_i);
+	vpiHandle h_debug_id_i = vpi_scan(argv);
+	assert(h_debug_id_i);
 
 	/* drive mac rx signals */
 	tb_mac_rx(h_valid_i, 
@@ -68,16 +68,14 @@ static int tb_mac_calltf(char*user_data)
 		h_data_i,
 		h_start_i, 
 		h_term_i,
-		h_len_i);
+		h_len_i,
+		h_debug_id_i);
 
 	return 0;
 }
 
 static int tb_trans_calltf(char*user_data)
 {
-	/* TODO network handler */
-	info("$tb_trans called\n");
-		
 	vpiHandle sys = vpi_handle(vpiSysTfCall, 0);
 	assert(sys);
 	vpiHandle argv = vpi_iterate(vpiArgument, sys);
@@ -92,12 +90,15 @@ static int tb_trans_calltf(char*user_data)
 	assert(h_len_o);
 	vpiHandle h_data_o = vpi_scan(argv);
 	assert(h_data_o);
-
+	vpiHandle h_debug_id_o = vpi_scan(argv);
+	assert(h_debug_id_o);
+	
 	tb_udp_data_rx(
 		h_valid_o,
 		h_data_o,
 		h_len_o,
-		h_start_o);
+		h_start_o,
+		h_debug_id_o);
 	
 	return 0;
 }

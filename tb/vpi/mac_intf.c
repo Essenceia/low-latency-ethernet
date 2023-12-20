@@ -6,10 +6,11 @@
 mac_intf_s *init_mac_intf(
 	mac_intf_e state, 
 	data_t data,
-	uint8_t data_len
+	uint8_t data_len,
+	debug_id_t id	
 ){
 	mac_intf_s *ret = (mac_intf_s*)malloc(sizeof(mac_intf_s));
-	fill_mac_intf(ret, state, data, data_len);
+	fill_mac_intf(ret, state, data, data_len,id);
 	return ret;		
 }
 
@@ -17,10 +18,12 @@ void fill_mac_intf(
 	mac_intf_s *mac, 
 	mac_intf_e state, 
 	data_t data,
-	uint8_t data_len
+	uint8_t data_len,
+	debug_id_t id
 ){
 	assert(mac);
 	memset(mac, 0, sizeof(mac_intf_s));
+	mac->id = id;
 	if(state != MAC_INVALID){
 		/* if invalid, leave anything to 0, else valid=1 */
 		mac->valid = true;
@@ -86,7 +89,7 @@ void fill_mac_intf(
 				break;
 		}
 	}
-	#ifdef DEBUG
+	#ifdef DEBUG_MAC
 	printf("Set mac, state %d :\n",state );
 	print_mac_intf(mac);
 	#endif
@@ -112,7 +115,7 @@ void print_mac_intf(mac_intf_s* mac){
 	}else{
 		printf("invalid");
 	}
-	printf("\n");
+	printf(" id %08x\n",mac->id);
 }
 
 uint8_t get_mac_start(mac_intf_s *mac){

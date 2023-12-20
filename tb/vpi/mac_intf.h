@@ -24,6 +24,7 @@ typedef struct{
 	#endif
 	bool term;
 	uint8_t len; // data len
+	debug_id_t id;
 }mac_intf_s;
 
 /* MAC interface states */
@@ -53,7 +54,8 @@ typedef enum {
 mac_intf_s *init_mac_intf(
 	mac_intf_e state, 
 	data_t data,
-	uint8_t data_len
+	uint8_t data_len,
+	debug_id_t id
 );
 
 /* fill structure */
@@ -61,7 +63,8 @@ void fill_mac_intf(
 	mac_intf_s *mac, 
 	mac_intf_e state, 
 	data_t data,
-	uint8_t data_len
+	uint8_t data_len,
+	debug_id_t id
 );
 
 /* get mac signal value, used to handle the where we have start 2 */ 

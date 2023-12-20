@@ -13,6 +13,9 @@ typedef struct{
 
 	/* output of transport data */
 	trans_data_s_fifo *data_fifo;
+
+	/* next debug id */
+	debug_id_t pkt_id;
 }tv_s;
 
 /* init tv */

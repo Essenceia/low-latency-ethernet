@@ -16,19 +16,22 @@ typedef struct{
 	uint8_t len;
 	data_t data;
 	trans_data_state_e state;
+	debug_id_t id;
 }trans_data_s;
 
 trans_data_s *init_trans_data(
 	uint8_t len,
 	data_t data,
-	trans_data_state_e state
+	trans_data_state_e state,
+	debug_id_t id
 );
 
 void fill_trans_data(
 	trans_data_s *trans,
 	uint8_t len,
 	data_t data,
-	trans_data_state_e state
+	trans_data_state_e state,
+	debug_id_t id
 );
 
 void print_trans_data(

@@ -24,5 +24,7 @@ typedef CAT3(uint,DATA_WIDTH,_t) data_t;
 #define PACKET_LEN_MAX 1500
 #define PACKET_LEN_MIN 50
 
+/* pkt debug id */
+typedef uint32_t debug_id_t;
 
 #endif // DEFS_H
