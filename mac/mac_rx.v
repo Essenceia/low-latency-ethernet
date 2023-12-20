@@ -86,6 +86,7 @@ logic [CNT_W-1:0] cnt_next;
 logic [CNT_W-1:0] cnt_add;
 logic             unused_cnt_add_of;
 logic             cnt_rst; 
+logic             cnt_en;
 logic [CNT_W-1:0] data_cnt;
 
 
@@ -99,12 +100,15 @@ end else begin
 	/*verilator lint_on WIDTHTRUNC */
 end
 
-assign cnt_rst = fsm_invalid_q & ~start_v; 
-assign {unused_cnt_add_of, cnt_add} = cnt_q + ({CNT_W{valid_i}} & data_cnt);
-assign cnt_next = cnt_rst ? {CNT_W{1'b0}} : cnt_add;
+assign cnt_rst =  fsm_invalid_q; 
+assign {unused_cnt_add_of, cnt_next} = cnt_add + ({CNT_W{valid_i}} & data_cnt);
+assign cnt_add = cnt_rst ? {CNT_W{1'b0}} : cnt_q;
+assign cnt_en = fsm_invalid_q | valid_i;
 
 always @(posedge clk) begin
-	cnt_q <= cnt_next;
+	if(cnt_en)begin
+		cnt_q <= cnt_next;
+	end
 end
 
 /* type and vlan */
