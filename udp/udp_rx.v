@@ -21,6 +21,7 @@ module udp_rx #(
 	// ip payload
 	input              valid_i,
 	input              start_i,
+	input              term_i,
 	input [DATA_W-1:0] data_i,
 	input [LEN_W-1:0]  len_i,
 	input              ip_cs_err_i,
@@ -73,26 +74,12 @@ end
 * |          data octets ...
 * +---------------- ...
 */
-/* udp length */
-reg   [CNT_W-1:0] udp_len_q;
-logic             udp_len_en;
-logic [CNT_W-1:0] udp_len_next;
-
-assign udp_len_en = valid_i & fsm_head_q & ( cnt_q[CNT_HEAD_W-1:0] == 'd4 );
-assign udp_len_next = {data_i[7:0], data_i[15:8]};
-always @(posedge clk) begin
-	if(udp_len_en)begin
-		udp_len_q <= udp_len_next;
-	end
-end
 /* head and data end 
  * head end : got all 8 udp head bytes
  * data end : receieved bytes >= udp length */
 logic end_head_v;
-logic end_data_v;
 assign end_head_v = cnt_add[CNT_HEAD_W-1:0] == 'd8;
-assign end_data_v = cnt_q >= udp_len_q;
-  
+ 
 /* port */
 logic              src_port_cnt_v;
 logic [PORT_W-1:0] src_port;
@@ -128,16 +115,16 @@ always @(posedge clk) begin
 end
 
 
-// FSM
+/* FSM */
 assign fsm_idle_next  = cancel_i
 					  | fsm_idle_q & ~start_i
-					  | fsm_data_q & end_data_v; 
+					  | fsm_data_q & term_i; 
 assign fsm_head_next  = ~cancel_i & 
 					  ( fsm_idle_q & start_i
 					  | fsm_head_q & ~end_head_v);
 assign fsm_data_next = ~cancel_i & 
 					 ( fsm_head_q & end_head_v 
-					 | fsm_data_q & ~end_data_v );
+					 | fsm_data_q & ~term_i );
 always @(posedge clk) begin
 	if ( ~nreset ) begin
 		fsm_idle_q <= 1'b1;
@@ -166,7 +153,24 @@ assign start_o = fsm_data_q & fsm_head_2q;
 assign data_o  = data_i;
 assign len_o   = len_i;
 `ifdef FORMAL
-initial begin
+
+/* udp length */
+reg   [CNT_W-1:0] udp_len_q;
+logic             udp_len_en;
+logic [CNT_W-1:0] udp_len_next;
+
+assign udp_len_en = valid_i & fsm_head_q & ( cnt_q[CNT_HEAD_W-1:0] == 'd4 );
+assign udp_len_next = {data_i[7:0], data_i[15:8]} - (DATA_W/8);
+always @(posedge clk) begin
+	if(udp_len_en)begin
+		udp_len_q <= udp_len_next;
+	end
+end
+
+logic  f_end_data_v;
+assign f_end_data_v = cnt_q >= udp_len_q;
+
+ initial begin
 	a_reset : assume ( ~nreset );
 end 
 always @(posedge clk) begin
@@ -183,7 +187,7 @@ always @(posedge clk) begin
 	endgenerate
 
 	/* check send length matches data end */
-	assert(~(valid_i & end_data_v) | (valid_i & end_data_v & ( len_i == {~udp_len_q[0],udp_len_q[0})));
+	assert(~(valid_i & f_end_data_v) | (valid_i & f_end_data_v & ( len_i == {~udp_len_q[0],udp_len_q[0})));
 end
 `endif
 endmodule

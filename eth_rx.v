@@ -82,6 +82,7 @@ mac_rx #(
 /* IPv4 */
 logic              t_valid;
 logic              t_start;
+logic              t_term;
 logic [DATA_W-1:0] t_data;
 logic [LEN_W-1:0]  t_len;
 logic              ip_cs_err;
@@ -104,6 +105,7 @@ ipv4_rx #(
 	.cs_err_o(ip_cs_err),
 	.valid_o (t_valid),
 	.start_o (t_start),
+	.term_o  (t_term),
 	.data_o  (t_data),
 	.len_o   (t_len)
 );
@@ -123,6 +125,7 @@ udp_rx #(
 	.cancel_i   (phy_cancel_i),
 	.valid_i    (t_valid),
 	.start_i    (t_start),
+	.term_i     (t_term),
 	.data_i     (t_data),
 	.len_i      (t_len),
 	.ip_cs_err_i(ip_cs_err),

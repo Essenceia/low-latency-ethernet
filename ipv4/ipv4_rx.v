@@ -41,6 +41,7 @@ module ipv4_rx #(
 	/* Transport */
 	output              valid_o,
 	output              start_o,
+	output              term_o,
 	output              cancel_o,
 	output [DATA_W-1:0] data_o,
 	output [LEN_W-1:0]  len_o
@@ -278,17 +279,19 @@ end
  * ip needs to keep track itself of the end of the
  * data there is no term signal expected from pcs
  * because of the additional mac footer for the crc. */
+logic end_data_lite_v;
 logic end_data_v;
-assign end_data_v = cnt_q >= tot_len_q;
+assign end_data_lite_v = cnt_q >= tot_len_q;
+assign end_data_v      = end_data_lite_v & fsm_data_q;
 
 /* fsm */
 assign fsm_idle_next = cancel_i 
 					 | fsm_idle_q & ~start_i
-					 | fsm_data_q & end_data_v;
+					 | fsm_data_q & end_data_lite_v;
 assign fsm_head_next = fsm_idle_q & start_i
 					 | fsm_head_q & ~end_head_v;
 assign fsm_data_next = fsm_head_q & end_head_v
-					 | fsm_data_q & ~end_data_v;
+					 | fsm_data_q & ~end_data_lite_v;
 always @(posedge clk) begin
 	if (~nreset) begin
 		fsm_idle_q <= 1'b1;
@@ -312,18 +315,27 @@ always @(posedge clk) begin
 end
 
 /* output */
+
 /* for DATA_W = 16 data is never partial: 
  * input data = output data, input len = output len */
 assign valid_o = valid_i & fsm_data_q &  ~bypass_v_q;
 assign data_o  = data_i;
+
 /* for data_width==16, allways full length (2) with a potencial exeption 
  * on the last payload when len is not a power of 2, we have lenght = 1 */
 assign len_o   = end_data_v ? { ~tot_len_q[0], tot_len_q[0]} : (DATA_W/8);
+
+/* both IPv4 and UDP finish at the same time, IPv4 drives UDP term */
+assign term_o  = end_data_v;
+
 assign start_o = fsm_head_2q & fsm_data_q;
+
 /* cs error will be transmitied in the first cycle of valid data
  * for transport layer */
 assign cs_err_o = cs_err_v;
+
 /* cancel 
  * pass on cancel from mac */
 assign cancel_o = cancel_i; 
+
 endmodule
