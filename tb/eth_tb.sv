@@ -162,6 +162,7 @@ initial begin
 	$tb_init();
 	nreset = 1'b0;
 	#10
+	$display("Test start");
 	nreset = 1'b1;
 	phy_cancel_i = 1'b0;
 	mac_valid_i = 1'b0;
@@ -183,6 +184,16 @@ initial begin
 	$finish;		
 end
 
+task check_term_data_match(
+	logic [LEN_W-1:0] exp_len,
+	logic [DATA_W-1:0] exp_data,
+	logic [DATA_W-1:0] app_data);
+	
+	for(int i=0; i<exp_len; i++)begin
+		assert(app_data[i*8+:8] == exp_data[i*8+:8]); 
+	end
+endtask
+
 /* compare expected values */
 always @(posedge clk) begin
 	if(nreset & app_valid_o)begin
@@ -195,13 +206,7 @@ always @(posedge clk) begin
 		assert(tb_exp_app_valid_o == app_valid_o);
 		assert(tb_exp_app_start_o == app_start_o);
 		assert(tb_exp_app_len_o == app_len_o);
-		//genvar x;
-		//generate
-		//for(x=0; x<KEEP_W; x++) begin
-		//	/* data match */
-		//	assert((tb_exp_app_len_o < x)|((tb_exp_app_len_o >= x) & (tb_app_data_o[x*8+:8] == app_data_o[x*8+:8]))); 
-		//end
-		//endgenerate
+		check_term_data_match(tb_exp_app_len_o, tb_exp_app_data_o, app_data_o);
 	end	
 end
 
