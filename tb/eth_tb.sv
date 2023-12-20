@@ -1,5 +1,19 @@
 `define TB_LOOP_CNT 1000
 
+`ifdef INTERACTIVE
+/* Adding extra 10 cycles for debuging after failure detection */
+`define assert_stop( X ) \
+if (~( X )) begin \
+$display("ERROR : assert failed : time %t , line %0d",$time, `__LINE__); \
+#10\
+$stop; \
+end 
+`else
+`define assert_stop( X ) \
+	assert( X )
+`endif
+
+
 /* Top level tb for ethernet modules */
 module eth_tb;
 
@@ -134,7 +148,7 @@ task send_simple_tx_data(int l);
 		/* verilator lint_on WIDTHTRUNC */
 		set_last_tx(i*KEEP_W,l);
 		#10
-		assert(~$isunknown(phy_data_o));
+		`assert_stop(~$isunknown(phy_data_o));
 	end
 
 	app_len_i = {KEEP_W{1'b0}};	
@@ -157,8 +171,12 @@ task send_simple_tx_data(int l);
 endtask
 
 initial begin
+
+	`ifdef WAVE
 	$dumpfile("wave/eth_tb.vcd");
 	$dumpvars(0, eth_tb);
+	`endif
+
 	$tb_init();
 	nreset = 1'b0;
 	#10
@@ -190,7 +208,7 @@ task check_term_data_match(
 	logic [DATA_W-1:0] app_data);
 	
 	for(int i=0; i<exp_len; i++)begin
-		assert(app_data[i*8+:8] == exp_data[i*8+:8]); 
+		`assert_stop(app_data[i*8+:8] == exp_data[i*8+:8]); 
 	end
 endtask
 
@@ -203,9 +221,9 @@ always @(posedge clk) begin
 			tb_exp_app_len_o,
 			tb_exp_app_data_o);
 		/* compare values */
-		assert(tb_exp_app_valid_o == app_valid_o);
-		assert(tb_exp_app_start_o == app_start_o);
-		assert(tb_exp_app_len_o == app_len_o);
+		`assert_stop(tb_exp_app_valid_o == app_valid_o);
+		`assert_stop(tb_exp_app_start_o == app_start_o);
+		`assert_stop(tb_exp_app_len_o == app_len_o);
 		check_term_data_match(tb_exp_app_len_o, tb_exp_app_data_o, app_data_o);
 	end	
 end

@@ -76,13 +76,34 @@ endif
 ifeq ($(SIM),I)
 define LINT
 	mkdir -p build
-	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
+	iverilog $(LINT_FLAGS) -s $2 $(BUILD_FLAGS) -o $(BUILD_DIR)/$2 $1
 endef
 else
 define LINT
 	mkdir -p build
 	verilator --lint-only $(LINT_FLAGS) $1
 endef
+endif
+
+###############
+# Build flags #
+###############
+
+# Build variables.
+ifeq ($(SIM),I)
+BUILD_DIR := build
+BUILD_FLAGS := $(if $(wave),-DWAVE)  
+BUILD_FLAGS += $(if $(assert),,-DINTERACTIVE)  
+else
+BUILD_DIR := obj_dir
+BUILD_FLAGS := 
+BUILD_FLAGS += $(if $(assert),--assert)
+BUILD_FLAGS += $(if $(wave), --trace --trace-underscore) 
+BUILD_FLAGS += $(if $(cov), --coverage --coverage-underscore) 
+BUILD_FLAGS += --timing
+BUILD_FLAGS += --x-initial-edge
+MAKE_THREADS = 4 
+BUILD_FLAGS += -j $(MAKE_THREADS)
 endif
 
 #############
@@ -102,7 +123,7 @@ define BUILD_VPI
 	# Manually invoke vpi to not polute dependancy list
 	@$(MAKE) -f makefile $3
 	# Same as normal build
-	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
+	iverilog $(LINT_FLAGS) -s $2 $(BUILD_FLAGS) -o $(BUILD_DIR)/$2 $1
 endef
 else
 define BUILD_VPI
@@ -117,32 +138,15 @@ define BUILD_VPI
 endef
 endif
 
-
 #########
 # Build #
 #########
-
-# Build variables.
-ifeq ($(SIM),I)
-BUILD_DIR := build
-BUILD_FLAGS := 
-else
-BUILD_DIR := obj_dir
-BUILD_FLAGS := 
-BUILD_FLAGS += $(if $(assert),--assert)
-BUILD_FLAGS += $(if $(wave), --trace --trace-underscore) 
-BUILD_FLAGS += $(if $(cov), --coverage --coverage-underscore) 
-BUILD_FLAGS += --timing
-BUILD_FLAGS += --x-initial-edge
-MAKE_THREADS = 4 
-BUILD_FLAGS += -j $(MAKE_THREADS)
-endif
 
 # Build commands.
 ifeq ($(SIM),I)
 define BUILD
 	mkdir -p build
-	iverilog $(LINT_FLAGS) -s $2 -o $(BUILD_DIR)/$2 $1
+	iverilog $(LINT_FLAGS) -s $2 $(BUILD_FLAGS) -o $(BUILD_DIR)/$2 $1
 endef
 else
 define BUILD
