@@ -267,7 +267,7 @@ logic                 tot_len_en;
 
 assign tot_len_en   = (cnt_q == 'd2) & valid_i;
 /* field is in big endian by default, invert to little endian */
-assign tot_len_next = {data_i[7:0], data_i[15:8]}; 
+assign tot_len_next = {data_i[7:0], data_i[15:8]} - (DATA_W/8);
 always @(posedge clk) begin
 	if(tot_len_en)begin
 		tot_len_q <= tot_len_next;
@@ -280,7 +280,7 @@ end
  * because of the additional mac footer for the crc. */
 logic end_data_v;
 assign end_data_v = cnt_q >= tot_len_q;
- 
+
 /* fsm */
 assign fsm_idle_next = cancel_i 
 					 | fsm_idle_q & ~start_i

@@ -148,14 +148,15 @@ void gen_new_pkt(
 		trans_data_s_fifo_push(tv->data_fifo,trans);
 
 		/* data */
-		while(pos+1+DATA_WIDTH_BYTE < data_len){
+		while(pos+DATA_WIDTH_BYTE < data_len){
 			seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
 			fill_trans_data(trans, DATA_WIDTH_BYTE, seg, TRANS_DATA_DATA);
 			trans_data_s_fifo_push(tv->data_fifo, trans);
 		}
 		/* term */
 		seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
-		fill_trans_data(trans, DATA_WIDTH_BYTE,	seg, TRANS_DATA_TERM);
+		printf("trans data term pos %ld seg_len %ld data_len %ld\n", pos, seg_len, data_len);
+		fill_trans_data(trans, seg_len,	seg, TRANS_DATA_TERM);
 		trans_data_s_fifo_push(tv->data_fifo, trans);
 		
 		free(trans);
