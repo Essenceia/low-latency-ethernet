@@ -196,13 +196,22 @@ initial begin
 	set_rx_idle();
 	for(int i=0; i < `TB_LOOP_CNT; i++) begin 
 		#10
-		$tb_mac(mac_valid_i,
-			phy_cancel_i,
-			mac_data_i,
-			mac_start_i,
-			mac_term_i,
-			mac_len_i,
-			pkt_debug_id_i);
+		/* add invalid cycles in the middle of valid packet, mimice behavior
+         * when we do not have any cdc between phy and the rest of the stack.
+         * Expect one invalid cycle every 32 cycles due to gearbox
+         * replenishing. */
+		if ( i % 33 == 0 )begin : invalid_cycle 
+			mac_valid_i = 1'b0;
+			phy_cancel_i = 1'b0;
+		end else begin
+			$tb_mac(mac_valid_i,
+				phy_cancel_i,
+				mac_data_i,
+				mac_start_i,
+				mac_term_i,
+				mac_len_i,
+				pkt_debug_id_i);
+		end
 	end
 	#10
 	$tb_free();	
