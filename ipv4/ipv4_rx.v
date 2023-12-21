@@ -216,12 +216,12 @@ logic [CS_W-1:0] cs_next;
 logic            cs_en;
 logic            cs_rst;
 
-assign cs_rst = fsm_idle_q & ~start_i;
+assign cs_rst = valid_i & start_i;
 /* don't include head checksum in the checksum calculation */
 assign cs_en  = fsm_idle_q | valid_i & ~fsm_data_q & ~head_checksum_lite_v;
 
-assign { unused_cs_add_of, cs_add} = cs_q + {data_i[7:0],data_i[15:8]};
-assign cs_next = cs_rst ? {CS_W{1'b0}} : cs_add;
+assign cs_add = cs_rst ? {CS_W{1'b0}} : cs_q;
+assign { unused_cs_add_of, cs_next} = cs_add + {data_i[7:0],data_i[15:8]};
 
 always @(posedge clk) begin
 	if ( cs_en ) begin
@@ -255,7 +255,7 @@ logic bypass_v_next;
 logic bypass_v_rst;
 
 assign bypass_v_rst = cnt_rst;
-assign bypass_v_next = bypass_v_rst ? 1'b0 : bypass_v_q | dcd_v ; 
+assign bypass_v_next = bypass_v_rst ? 1'b0 : bypass_v_q |(valid_i & dcd_v); 
 
 always @(posedge clk) begin
 	bypass_v_q <= bypass_v_next;
