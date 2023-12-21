@@ -14,9 +14,9 @@
     - check if switch support IPG of zero, if not enforce IPG of >=96 ( 802.3 ) 
 
 - tb:
-    - drive expected udp output
     - add verilator support
     - move tb\_rand into utils lib 
-    - add support for bubbles in data validity from PHY 
     - add cancels phy errors on mac interface to test cancel logic
 
+- IP: 
+    - fix IP checksum in tb and rtl, wireshark doesn't agree with result 
