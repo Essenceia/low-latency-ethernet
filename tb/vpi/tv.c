@@ -21,7 +21,16 @@ tv_s* init_tv(){
 			DEFAULT_SRC_PORT,
 			DEFAULT_DST_PORT,
 			DEFAULT_HAS_VLAN);	
-	for(int i=1; i<NODE_CNT; i++){
+	tv_p->eth[1] = init_eth_packet(
+			DEFAULT_DST_MAC,
+			DEFAULT_SRC_MAC,
+			DEFAULT_SRC_IP,
+			DEFAULT_DST_IP,
+			DEFAULT_SRC_PORT,
+			DEFAULT_DST_PORT,
+			!DEFAULT_HAS_VLAN);	
+	
+	for(int i=2; i<NODE_CNT; i++){
 		uint8_t *mac_dst = tb_rand_uint48_t();
 		uint8_t *mac_src = tb_rand_uint48_t();
 		tv_p->eth[i] = init_eth_packet(
@@ -147,7 +156,7 @@ void gen_new_pkt(
  	 * mac/ip/port values, we expect the transport data to be driven
  	 * on the output of the transport layer.
  	 * Segement transport data and start adding it to fifo */
-	if (node_id == 0){
+	if (node_id <= 1){
 		/* TODO: this version of the testbench is written for 
 	 	 * DATA_WIDTH == 16, we are guarantied that the transport
 	 	 * data will allways start at the begining of a bus payload
