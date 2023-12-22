@@ -210,9 +210,12 @@ end
 
 /* Checksum calculation */
 reg   [CS_W-1:0] cs_q;
+reg              cs_carry_q;
 logic            unused_cs_add_of;
 logic [CS_W-1:0] cs_add;
 logic [CS_W-1:0] cs_next;
+logic            cs_carry_next;
+logic            cs_add_carry;
 logic            cs_en;
 logic            cs_rst;
 
@@ -221,11 +224,13 @@ assign cs_rst = valid_i & start_i;
 assign cs_en  = fsm_idle_q | valid_i & ~fsm_data_q & ~head_checksum_lite_v;
 
 assign cs_add = cs_rst ? {CS_W{1'b0}} : cs_q;
-assign { unused_cs_add_of, cs_next} = cs_add + {data_i[7:0],data_i[15:8]};
+assign cs_add_carry = ~cs_rst & cs_carry_q;
+assign {cs_carry_next, cs_next} = cs_add + {data_i[7:0],data_i[15:8]} + cs_add_carry;
 
 always @(posedge clk) begin
 	if ( cs_en ) begin
 		cs_q <= cs_next;
+		cs_carry_q <= cs_carry_next;
 	end
 end
 
@@ -242,7 +247,8 @@ assign version_dcd_lite_v = version_lite_v & (version != VERSION);
 assign frag_dcd_lite_v = frag_flag_lite_v & (frag_flag != FRAG_FLAG);
 assign prot_dcd_lite_v = protocol_lite_v & (protocol != PROTOCOL);
 
-assign cs_err_v = fsm_data_q & ( cs_q != head_checksum_q );
+/* checksum is the one's complement of the sum, inversing sum bits */
+assign cs_err_v = fsm_data_q & ( ~cs_q != head_checksum_q );
 
 assign dcd_v = version_dcd_lite_v 
 			 | ( valid_i & fsm_head_q ) & ( frag_dcd_lite_v | prot_dcd_lite_v )

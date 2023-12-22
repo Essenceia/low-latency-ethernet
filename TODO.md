@@ -17,6 +17,3 @@
     - add verilator support
     - move tb\_rand into utils lib 
     - add cancels phy errors on mac interface to test cancel logic
-
-- IP: 
-    - fix IP checksum in tb and rtl, wireshark doesn't agree with result 
