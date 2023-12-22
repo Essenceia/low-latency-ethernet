@@ -203,6 +203,12 @@ initial begin
 		if ( i % 33 == 0 )begin : invalid_cycle 
 			mac_valid_i = 1'b0;
 			phy_cancel_i = 1'b0;
+			/* adding x's on data to help detect bugs where data is captured
+ 			 * when it should have been ignored using xprop */
+			mac_data_i = {DATA_W{1'bx}};
+			mac_start_i = {LANE0_CNT_N{1'bx}};
+			mac_term_i = 1'bx;
+			mac_len_i = {LEN_W{1'bx}};
 		end else begin
 			$tb_mac(mac_valid_i,
 				phy_cancel_i,

@@ -218,7 +218,7 @@ end else begin : gen_16_32_data_width
 		assign type_v = cnt_q == TYPE_IDX;
 	end // vlan_tag
 end
-assign type_err_v = fsm_head_q & type_v & (type_id != IPV4);
+assign type_err_v = fsm_head_q & valid_i & type_v & (type_id != IPV4);
  
 /* data bypass valid
  * controls if data will be sent to the upper layers.
