@@ -217,7 +217,7 @@ static inline void tb_list_rm(tb_list *l)
  */
 static inline void tb_list_rpu(
 	tb_list *old,
-	tb_list *new
+	tb_list *nv
 )
 {
 
@@ -230,7 +230,7 @@ static inline void tb_list_rpu(
 	if (n == old) {
 
 		/* Link new to itself. */
-		tb_list_init(new);
+		tb_list_init(nv);
 
 		/* Complete. */
 		return;
@@ -241,8 +241,8 @@ static inline void tb_list_rpu(
 	p = old->prev;
 
 	/* Link new. */
-	tb_list_link(p, new);
-	tb_list_link(new, n);
+	tb_list_link(p, nv);
+	tb_list_link(nv, n);
 
 }
 
@@ -253,7 +253,7 @@ static inline void tb_list_rpu(
  */
 static inline void tb_list_rp(
 	tb_list *old,
-	tb_list *new
+	tb_list *nv
 )
 {
 
@@ -266,7 +266,7 @@ static inline void tb_list_rp(
 	if (n == old) {
 
 		/* Link new to itself. */
-		tb_list_init(new);
+		tb_list_init(nv);
 
 		/* Complete. */
 		return;
@@ -277,8 +277,8 @@ static inline void tb_list_rp(
 	p = old->prev;
 
 	/* Link new. */
-	tb_list_link(p, new);
-	tb_list_link(new, n);
+	tb_list_link(p, nv);
+	tb_list_link(nv, n);
 
 	/* Reset the old node. */
 	tb_list_init(old);

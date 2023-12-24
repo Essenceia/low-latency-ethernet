@@ -8,11 +8,13 @@
 #ifndef TB_NETWORK_HPP 
 #define TB_NETWORK_HPP 
 
-#include "defs.h"
+#define MODULE eth_tb
 
-#define MODULE am_tx_tb
+extern "C" {
+#include "../defs.h"
+}
 
-#include INC_STR
+#include "Veth_tb.h"
 
 int main(int argc, char ** argv);
 

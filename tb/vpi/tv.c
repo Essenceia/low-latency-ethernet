@@ -13,17 +13,28 @@
 tv_s* init_tv(){
 	/* init tv struct */
 	tv_s *tv_p = malloc(sizeof(tv_s));
+
+	/* should have at least 2 nodes to support default
+ 	 * packet parameters with and without vlan */ 
+	assert(NODE_CNT>=2);
+
+	/* storing mac array to r value, risk hitting g++
+ 	 * internal compiler error on version 13.2.1 
+ 	 * otherwise */
+	uint8_t default_dst_mac[6] = DEFAULT_DST_MAC;
+	uint8_t default_src_mac[6] = DEFAULT_SRC_MAC;
+	
 	tv_p->eth[0] = init_eth_packet(
-			DEFAULT_DST_MAC,
-			DEFAULT_SRC_MAC,
+			default_dst_mac,
+			default_src_mac,
 			DEFAULT_SRC_IP,
 			DEFAULT_DST_IP,
 			DEFAULT_SRC_PORT,
 			DEFAULT_DST_PORT,
 			DEFAULT_HAS_VLAN);	
 	tv_p->eth[1] = init_eth_packet(
-			DEFAULT_DST_MAC,
-			DEFAULT_SRC_MAC,
+			default_dst_mac,
+			default_src_mac,
 			DEFAULT_SRC_IP,
 			DEFAULT_DST_IP,
 			DEFAULT_SRC_PORT,

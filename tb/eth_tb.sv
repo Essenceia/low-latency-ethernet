@@ -277,6 +277,7 @@ eth_rx #(
 	.app_data_o(app_data_o),
 	.app_len_o(app_len_o)
 );
+
 /* UUT TX */
 eth_tx #(
 	.DATA_W(DATA_W)
