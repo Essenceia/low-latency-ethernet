@@ -209,9 +209,10 @@ always @(posedge clk) begin
 end
 
 /* Checksum calculation */
+logic [CS_W-1:0] cs;
 reg   [CS_W-1:0] cs_q;
 reg              cs_carry_q;
-logic            unused_cs_add_of;
+logic            unused_cs_of;
 logic [CS_W-1:0] cs_add;
 logic [CS_W-1:0] cs_next;
 logic            cs_carry_next;
@@ -233,6 +234,8 @@ always @(posedge clk) begin
 		cs_carry_q <= cs_carry_next;
 	end
 end
+/* add last carry */
+assign {unused_cs_of, cs} = cs_q + cs_carry_q;
 
 /* discard valid signals: don't match accepted */
 logic dcd_v;
@@ -248,7 +251,7 @@ assign frag_dcd_lite_v = frag_flag_lite_v & (frag_flag != FRAG_FLAG);
 assign prot_dcd_lite_v = protocol_lite_v & (protocol != PROTOCOL);
 
 /* checksum is the one's complement of the sum, inversing sum bits */
-assign cs_err_v = fsm_data_q & ( ~cs_q != head_checksum_q );
+assign cs_err_v = fsm_data_q & ( ~cs != head_checksum_q );
 
 assign dcd_v = version_dcd_lite_v 
 			 | ( valid_i & fsm_head_q ) & ( frag_dcd_lite_v | prot_dcd_lite_v )
