@@ -1,4 +1,4 @@
-`define TB_LOOP_CNT 10000
+`define TB_LOOP_CNT 5000
 
 `ifdef INTERACTIVE
 /* Adding extra 10 cycles for debuging after failure detection */

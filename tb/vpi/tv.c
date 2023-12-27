@@ -16,6 +16,12 @@
 	__set_state_val; \
 })
 
+#define SKIP_TRANS_PAYLOAD(p, err_v, err_p) { \
+	if (err_v && ((p==err_p)||((err_p < err_p+DATA_WIDTH_BYTE) && (err_p > p)))){ \
+		goto END_TRANS_DATA; \
+	} \
+}
+
 /* init function */
 tv_s* init_tv(){
 	/* init tv struct */
@@ -138,7 +144,7 @@ void gen_new_pkt(
 			
 	}
 	#ifdef DEBUG_POS
-	info("last packet\n");
+	info("last payload\n");
 	#endif
 
 	/* term */
@@ -170,7 +176,9 @@ void gen_new_pkt(
  	 */
 	int idle_cnt = (8 - ((int)pos)%8)/DATA_WIDTH_BYTE;
 	while(idle_cnt>0){
-		fill_mac_intf(mac,MAC_INVALID,0,0,0);
+		/* add phy error intermixed with idle for better coverage */
+		mac_state = (tb_rand_uint8_t() % PHY_ERR_IDLE_RATE == 0)? MAC_ERROR : MAC_INVALID;
+		fill_mac_intf(mac,mac_state,0,0,0);
 		mac_intf_s_fifo_push(tv->mac_fifo,mac);
 		idle_cnt -= DATA_WIDTH_BYTE;
 	}
@@ -190,24 +198,32 @@ void gen_new_pkt(
 	 	 * Writing assertion of rember add support for this latter */
 		assert(DATA_WIDTH < 64 );
 
+		/* get header length, used to select what transport payloads are expected */
+		int t_err_pos = (int)err_pos - (int)get_head_len(tv->eth[node_id]) ; 
+		bool t_err = phy_err & (t_err_pos >= 0); 
+
 		/* start */
 		pos = 0;
 		seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
 		trans_data_s *trans = init_trans_data(DATA_WIDTH_BYTE, seg, TRANS_DATA_START, tv->pkt_id); 	
+		SKIP_TRANS_PAYLOAD(pos, t_err, t_err_pos);
 		trans_data_s_fifo_push(tv->data_fifo,trans);
 
 		/* data */
 		while(pos+DATA_WIDTH_BYTE < data_len){
 			seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
 			fill_trans_data(trans, DATA_WIDTH_BYTE, seg, TRANS_DATA_DATA,tv->pkt_id);
+			SKIP_TRANS_PAYLOAD(pos, t_err, t_err_pos);
 			trans_data_s_fifo_push(tv->data_fifo, trans);
 		}
 		/* term */
 		seg = get_nxt_pkt_seg(data, &pos, &seg_len, data_len);
 		info("trans data term pos %ld seg_len %d data_len %ld\n", pos, seg_len, data_len);
 		fill_trans_data(trans, seg_len,	seg, TRANS_DATA_TERM, tv->pkt_id);
+		SKIP_TRANS_PAYLOAD(pos, t_err, t_err_pos);
 		trans_data_s_fifo_push(tv->data_fifo, trans);
-		
+	
+		END_TRANS_DATA:	
 		free(trans);
  	}
 	#ifdef WIRESHARK
