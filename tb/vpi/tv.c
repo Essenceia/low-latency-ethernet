@@ -17,7 +17,7 @@
 })
 
 #define SKIP_TRANS_PAYLOAD(p, err_v, err_p) { \
-	if (err_v && ((p==err_p)||((err_p < err_p+DATA_WIDTH_BYTE) && (err_p > p)))){ \
+	if (err_v && ((p==err_p)||((err_p < p+DATA_WIDTH_BYTE) && (err_p > p)))){ \
 		goto END_TRANS_DATA; \
 	} \
 }
@@ -201,6 +201,7 @@ void gen_new_pkt(
 		/* get header length, used to select what transport payloads are expected */
 		int t_err_pos = (int)err_pos - (int)get_head_len(tv->eth[node_id]) ; 
 		bool t_err = phy_err & (t_err_pos >= 0); 
+		printf("Error, phy err %d t_err_pos %ld\n", phy_err, t_err_pos);
 
 		/* start */
 		pos = 0;
