@@ -4,10 +4,20 @@
 #include "tb_rand.h"
 #include "inc/dump.h"
 
-#define RAND_MAC {\ 
+#define RAND_MAC {\
 	tb_rand_uint8_t(),tb_rand_uint8_t(),\
 	tb_rand_uint8_t(),tb_rand_uint8_t(),\
 	tb_rand_uint8_t(),tb_rand_uint8_t() }
+
+/* overwrite state on error */
+#define SET_STATE(s, p,err_v, err_p, err_s) ({ \
+	const bool __set_state_cdt = err_v && ((err_p==p) || ((err_p < p+DATA_WIDTH_BYTE) && (err_p > p))); \
+	const typeof(s) __set_state_val = __set_state_cdt ? err_s : s; \
+	if (err_v && __set_state_cdt) { \
+		printf("p/err_p %d/%d %x\n",p,err_p, __set_state_val); \
+	} \	
+	__set_state_val; \
+})
 
 /* init function */
 tv_s* init_tv(){
@@ -98,15 +108,21 @@ void gen_new_pkt(
 			tv->eth[node_id],
 			 &pkt_len);
 
+	/* randomly inject a phy layer error */
+	bool phy_err = (tb_rand_uint8_t() % PHY_ERR_RATE) == 0; 
+	size_t err_pos = tb_rand_uint16_t() % pkt_len;
+	if(phy_err)printf("[%d] Err pos %ld pkt len %ld\n", tv->pkt_id, err_pos, pkt_len);
+
 	/* mac interface	
 	 * segment packet */
 	size_t pos = 0;
 	uint8_t seg_len;
 	/* start */
+	mac_intf_e mac_state = SET_STATE(MAC_START, pos, phy_err, err_pos, MAC_ERROR); 
 	data_t seg = get_nxt_pkt_seg(pkt_data, &pos, &seg_len, pkt_len);
 	
 	// TODO allow randomly starting on start 2 if supported
-	mac_intf_s *mac = init_mac_intf(MAC_START,seg,DATA_WIDTH_BYTE, tv->pkt_id); 
+	mac_intf_s *mac = init_mac_intf(mac_state,seg,DATA_WIDTH_BYTE, tv->pkt_id); 
 	mac_intf_s_fifo_push(tv->mac_fifo,mac);
 
 	#ifdef DEBUG_POS	
@@ -119,6 +135,7 @@ void gen_new_pkt(
 		info("pos/pkt_len %ld/%ld\n", pos, pkt_len);
 		#endif
 
+		mac_state = SET_STATE(MAC_DATA, pos, phy_err, err_pos, MAC_ERROR); 
 		seg = get_nxt_pkt_seg(pkt_data,	&pos, &seg_len,	pkt_len);
 		fill_mac_intf(mac, MAC_DATA, seg, seg_len, tv->pkt_id);	
 		mac_intf_s_fifo_push(tv->mac_fifo,mac);
@@ -129,8 +146,9 @@ void gen_new_pkt(
 	#endif
 
 	/* term */
+	mac_state = SET_STATE(get_mac_term(seg_len), pos, phy_err, err_pos, MAC_ERROR); 
 	seg = get_nxt_pkt_seg(pkt_data,&pos,&seg_len,pkt_len);
-	fill_mac_intf(mac,get_mac_term(seg_len),seg,seg_len, tv->pkt_id);
+	fill_mac_intf(mac,mac_state,seg,seg_len, tv->pkt_id);
 	mac_intf_s_fifo_push(tv->mac_fifo,mac);
 
 	/* append idle cycles if the last valid transfer wasn't on the

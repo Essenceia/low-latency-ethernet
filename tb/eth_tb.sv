@@ -43,7 +43,6 @@ localparam [IP_ADDR_W-1:0] IP_DST_ADDR = 32'h0;
 
 /* TB */
 localparam DEBUG_ID_W = 32;
-
 reg   clk = 1'b0;
 logic nreset;
 
@@ -223,6 +222,23 @@ initial begin
 	$tb_free();	
 	$display("Test finised");
 	$finish;		
+end
+
+/* debug packet counter */
+localparam TB_PKT_CNT_W = 16;
+
+reg   [TB_PKT_CNT_W-1:0] tb_pkt_cnt_q;
+logic [TB_PKT_CNT_W-1:0] tb_pkt_cnt_next;
+logic [TB_PKT_CNT_W-1:0] tb_pkt_cnt_add;
+logic tb_pkt_cnt_rst;
+
+assign tb_pkt_cnt_rst = mac_valid_i & mac_start_i;
+assign tb_pkt_cnt_add = tb_pkt_cnt_rst ? '0 : tb_pkt_cnt_q;
+assign tb_pkt_cnt_next = tb_pkt_cnt_add + {{TB_PKT_CNT_W-LEN_W{1'b0}}, mac_len_i};
+always @(posedge clk) begin
+	if(mac_valid_i)begin
+		tb_pkt_cnt_q <= tb_pkt_cnt_next;
+	end
 end
 
 task check_term_data_match(
