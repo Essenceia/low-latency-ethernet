@@ -36,7 +36,9 @@ endif
 AUR := $(HOME)/AUR
 
 # Compilation flags.
-CC_FLAGS := -Wall -Wextra -Wconversion -Wshadow -Wundef -fno-common -Wno-unused-parameter -Wno-type-limits -fpic 
+CC_FLAGS := -Wall -Wextra -Wconversion -Wshadow -Wundef -fno-common -Wno-unused-parameter -Wno-type-limits 
+CC_FLAGS += -Wno-format
+CC_FLAGS += -fpic 
 CC_FLAGS += $(if $(debug),-g) 
 
 # Compilation defines.
@@ -137,13 +139,11 @@ $(eval $(foreach x,$(VPI_SRCS),$(call vpi_obj_recipe,$x)))
 ################
 
 # Dependencies for all tests. '.o'-s ommitted.
-#deps_all := tv pcs_gearbox pcs_enc 64b66b pcs_tx tb_fifo tb_rand $(40g_deps)
-
 deps_all :=tv tb_rand mac_intf trans_data
 
 # Test dependencies names. '.o'-s ommitted.
 test_deps_names := test $(deps_all) 
-tb_deps_names := tb vpi_utils $(deps_all)
+tb_deps_names := tb vpi_utils $(VPI_SRCS) $(deps_all)
 
 # Dependencies generator.
 gen_deps = $(foreach x,$($(1)_deps_names),$(BUILD)/$x.o)
