@@ -13,9 +13,6 @@
 #define SET_STATE(s, p,err_v, err_p, err_s) ({ \
 	const bool __set_state_cdt = err_v && ((err_p==p) || ((err_p < p+DATA_WIDTH_BYTE) && (err_p > p))); \
 	const typeof(s) __set_state_val = __set_state_cdt ? err_s : s; \
-	if (err_v && __set_state_cdt) { \
-		printf("p/err_p %d/%d %x\n",p,err_p, __set_state_val); \
-	} \	
 	__set_state_val; \
 })
 
@@ -111,7 +108,6 @@ void gen_new_pkt(
 	/* randomly inject a phy layer error */
 	bool phy_err = (tb_rand_uint8_t() % PHY_ERR_RATE) == 0; 
 	size_t err_pos = tb_rand_uint16_t() % pkt_len;
-	if(phy_err)printf("[%d] Err pos %ld pkt len %ld\n", tv->pkt_id, err_pos, pkt_len);
 
 	/* mac interface	
 	 * segment packet */
@@ -137,7 +133,7 @@ void gen_new_pkt(
 
 		mac_state = SET_STATE(MAC_DATA, pos, phy_err, err_pos, MAC_ERROR); 
 		seg = get_nxt_pkt_seg(pkt_data,	&pos, &seg_len,	pkt_len);
-		fill_mac_intf(mac, MAC_DATA, seg, seg_len, tv->pkt_id);	
+		fill_mac_intf(mac, mac_state, seg, seg_len, tv->pkt_id);	
 		mac_intf_s_fifo_push(tv->mac_fifo,mac);
 			
 	}
@@ -146,8 +142,8 @@ void gen_new_pkt(
 	#endif
 
 	/* term */
-	mac_state = SET_STATE(get_mac_term(seg_len), pos, phy_err, err_pos, MAC_ERROR); 
 	seg = get_nxt_pkt_seg(pkt_data,&pos,&seg_len,pkt_len);
+	mac_state = SET_STATE(get_mac_term(seg_len), pos, phy_err, err_pos, MAC_ERROR); 
 	fill_mac_intf(mac,mac_state,seg,seg_len, tv->pkt_id);
 	mac_intf_s_fifo_push(tv->mac_fifo,mac);
 

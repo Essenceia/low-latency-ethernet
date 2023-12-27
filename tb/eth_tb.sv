@@ -209,7 +209,8 @@ initial begin
 			mac_term_i = 1'bx;
 			mac_len_i = {LEN_W{1'bx}};
 		end else begin
-			$tb_mac(mac_valid_i,
+			$tb_mac(
+				mac_valid_i,
 				phy_cancel_i,
 				mac_data_i,
 				mac_start_i,

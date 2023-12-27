@@ -37,7 +37,7 @@ void tb_mac_rx(
 	assert(mac);
 	/* translate content of mac struct to 
  	 * vpi signal handlers */
-	vpi_put_logic_1b_t(h_valid_i, mac->valid);	
+	vpi_put_logic_1b_t(h_valid_i, mac->valid);
 	vpi_put_logic_1b_t(h_cancel_i, mac->cancel);	
 	/* call correct put function depending on the DATA_WIDTH */	
 	CAT3(vpi_put_logic_uint,DATA_WIDTH,_t(h_data_i, mac->data));

@@ -63,7 +63,8 @@ static int tb_mac_calltf(char*user_data)
 	assert(h_debug_id_i);
 
 	/* drive mac rx signals */
-	tb_mac_rx(h_valid_i, 
+	tb_mac_rx(
+		h_valid_i, 
 		h_cancel_i,
 		h_data_i,
 		h_start_i, 

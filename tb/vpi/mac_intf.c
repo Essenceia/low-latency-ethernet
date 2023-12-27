@@ -39,28 +39,26 @@ void fill_mac_intf(
 				mac->start_2 = true;
 				break;		
 			#endif
-			case MAC_TERM_0:
-				assert(data_len==0);
-				mac->term = true;
-				break;
 			case MAC_TERM_1:
 				assert(data_len==1);
 				mac->term = true;
 				break;
-			#if DATA_WIDTH > 16
-			case MAC_TERM_2;
+			case MAC_TERM_2:
+				if(data_len != 2)
+					printf("data_len %d\n", data_len);
 				assert(data_len==2);
 				mac->term = true;
 				break;		
+			#if DATA_WIDTH > 16
 			case MAC_TERM_3:
 				assert(data_len==3);
 				mac->term = true;
 				break;
-			#if DATA_WIDTH > 32
 			case MAC_TERM_4;
 				assert(data_len==4);
 				mac->term = true;
 				break;	
+			#if DATA_WIDTH > 32
 			case MAC_TERM_5:
 				assert(data_len==5);
 				mac->term = true;
@@ -70,7 +68,11 @@ void fill_mac_intf(
 				mac->term = true;
 				break;	
 			case MAC_TERM_7;
-				assert(data_len==6);
+				assert(data_len==7);
+				mac->term = true;
+				break;	
+			case MAC_TERM_8;
+				assert(data_len==8);
 				mac->term = true;
 				break;	
 			#endif

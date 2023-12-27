@@ -25,7 +25,7 @@ typedef CAT3(uint,DATA_WIDTH,_t) data_t;
 #define PACKET_LEN_MIN 50
 
 /* PHY ERROR */
-#define PHY_ERR_RATE 1
+#define PHY_ERR_RATE 4
 
 /* pkt debug id */
 typedef uint32_t debug_id_t;

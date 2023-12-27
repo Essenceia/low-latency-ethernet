@@ -29,25 +29,25 @@ typedef struct{
 
 /* MAC interface states */
 typedef enum {
-	MAC_INVALID,
-	MAC_START,
+	MAC_INVALID = 0,
+	MAC_START = 1,
 	#ifdef MAC_INTF_START_2
-	MAC_START_2,// start on second lane 
+	MAC_START_2 = 2,// start on second lane 
 	#endif
-	MAC_TERM_0,
-	MAC_TERM_1,
+	MAC_TERM_1 = 3,
+	MAC_TERM_2 = 4,
 	#if (DATA_WIDTH > 16)
-	MAC_TERM_2,
-	MAC_TERM_3,
+	MAC_TERM_3 = 5,
+	MAC_TERM_4 = 6,
 	#if (DATA_WIDTH > 32)
-	MAC_TERM_4,
-	MAC_TERM_5,
-	MAC_TERM_6,
-	MAC_TERM_7,
+	MAC_TERM_5 = 7,
+	MAC_TERM_6 = 8,
+	MAC_TERM_7 = 9,
+	MAC_TERM_8 = 10,
 	#endif
 	#endif
-	MAC_ERROR,
-	MAC_DATA
+	MAC_ERROR = 11,
+	MAC_DATA = 12
 }mac_intf_e ;
 
 /* init and fill struct */
@@ -97,6 +97,11 @@ static inline mac_intf_e get_mac_term(size_t data_len){
 	/* at worst ( DATA_WIDTH == 64 ), term data_len should
  	 * never be more than 7 bytes */  
 	assert(data_len <= 7);
-	return (mac_intf_e)(MAC_TERM_0 + data_len);
+	assert(data_len);
+	#if (DATA_WIDTH == 16)
+	assert(data_len <= 2);
+	#endif 
+	mac_intf_e state = (MAC_TERM_1 + data_len -1);
+	return state;
 }
 #endif // MAC_INTF_H
