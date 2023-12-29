@@ -295,13 +295,13 @@ end else begin
 			end else begin
 				assign head_data_shift2 = ~cnt_q[2];	
 			end
-		end else // !10G
+		end else /* !10G */
 			if ( VLAN_TAG ) begin
 				/* verilator lint_off UNUSEDSIGNAL */
 				assign head_data_shift2 = ~vlan_v;
 				/* verilator lint_on UNUSEDSIGNAL */
 				assign head_data_len = {2'b0, {4{~head_data_shift2}}, 2'b11};  
-			end else begin // !VTAG
+			end else begin /* !VTAG */
 				assign head_data_shift2 = 1'b1;
 				assign head_data_len = 'd2;  
 			end

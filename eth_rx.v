@@ -6,6 +6,7 @@ module eth_rx #(
 	parameter UDP = 1, /* 1 : UDP, 0 : TCP */
 	
 	parameter DATA_W = 16,
+	localparam KEEP_W = DATA_W/8,
 	parameter LEN_W  = $clog2(KEEP_W+1),
 	localparam LANE0_CNT_N = IS_10G & ( DATA_W == 64 )? 2 : 1,
 	/* IP */
@@ -38,7 +39,6 @@ module eth_rx #(
 	output [DATA_W-1:0]     app_data_o,
 	output [LEN_W-1:0]      app_len_o
 );
-localparam KEEP_W = DATA_W/8;
 /* Transport protocol */
 localparam PROT_W = 8;
 localparam [PROT_W-1:0] PROT_UDP = 8'd17;
