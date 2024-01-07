@@ -11,24 +11,20 @@ checkpoint :=1
 endif
 
 # project directory and name
-PROJ_DIR := ../vivado
 PROJ := eth_rx
-PROJ_PATH := $(PROJ_DIR)/$(fpga)_$(PROJ)/$(PROJ).xpr
+PROJ_DIR := ../vivado/$(fpga)_$(PROJ)
+PROJ_PATH := $(PROJ_DIR)/$(PROJ).xpr
 
 # Invoke vivado in tcl batch mode
 VVD := vivado -mode batch -source
 
 # tcl args
-ARGS := -tclargs "$(fpga)" "$(PROJ)" "$(checkpoint)"
-
-$(PROJ_DIR):
-	mkdir -p $(PROJ_DIR)
+ARGS := -tclargs "$(PROJ_PATH)" "$(PROJ_DIR)" "$(checkpoint)"
 
 # setup
-$(PROJ_PATH): setup.tcl $(PROJ_DIR)
-	$(VVD) $< $(ARGS) 
-
 setup: $(PROJ_PATH)
+	mkdir -p $(PROJ_DIR)
+	$(VVD) setup.tcl -tclargs "$(fpga)" "$(PROJ)" "$(checkpoint)"
 	$(info Set up project with parameters :)
 	$(info fpga: $(fpga))
 	$(info project: $(PROJ))
@@ -37,7 +33,20 @@ setup: $(PROJ_PATH)
 
 
 lint: lint.tcl
-	$(VVD) $< -tclargs "$(PROJ_PATH)" 
+	$(VVD) $< $(ARGS)
+
+# checkpoints
+
+synth_cp:= $(PROJ_DIR)/synth_cp.dcp
+impl_cp:= $(PROJ_DIR)/impl_cp.dcp
+
+$(synth_cp): 
+	$(VVD) synth.tcl $(ARGS)
+
+$(impl_cp): $(synth_cp)
+	$(VVD) impl.tcl $(ARGS)
+
+impl: $(impl_cp)
 
 clean:
 	rm -f vivado*.jou
