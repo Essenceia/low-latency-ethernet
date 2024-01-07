@@ -90,6 +90,7 @@ logic             cnt_en;
 logic [CNT_W-1:0] data_cnt;
 
 
+generate
 /* cnt the number of bytes received from the PCS */
 if ((DATA_W == 64) && (IS_10G == 1)) begin
 	/* first packet can have 4 or 8 bytes of data */
@@ -99,6 +100,7 @@ end else begin
 	assign data_cnt = DATA_BYTES_N;
 	/*verilator lint_on WIDTHTRUNC */
 end
+endgenerate
 
 assign cnt_rst =  fsm_invalid_q; 
 assign {unused_cnt_add_of, cnt_next} = cnt_add + ({CNT_W{valid_i}} & data_cnt);
@@ -115,7 +117,12 @@ end
 logic [TYPE_W-1:0] type_id;
 logic              type_v;// type index valid
 logic              type_err_v;// type content matches accepted packet expectations, eg : IPv4
-
+logic [TYPE_W-1:0] vlan_id;
+logic              vlan_idx_v;
+logic              vlan_v;
+logic              tpic_v;
+		
+generate
 if ((DATA_W == 64) & (IS_10G))begin : gen_64_data_width
 	/* vlan tag and type index or type starts at 20 bytes, so the type field may
 	 * not fall on the first indexes of the data depending on if
@@ -130,11 +137,6 @@ if ((DATA_W == 64) & (IS_10G))begin : gen_64_data_width
 	assign lite_type_id[1] = data_i[4*8+TYPE_W-1:4*8];
 
 	if ( VLAN_TAG ) begin : gen_has_vlan
-		logic [TYPE_W-1:0] vlan_id;
-		logic              vlan_idx_v;
-		logic              vlan_v;
-		logic              tpic_v;
-		
 		assign tpic_v = vlan_id == TPIC;
 		assign vlan_v = vlan_idx_v & tpic_v;
 		/* vlan and type may be received in the same packet
@@ -176,10 +178,6 @@ end else begin : gen_16_32_data_width
 	/* verilator lint_on WIDTHTRUNC */
 
 	if ( VLAN_TAG) begin : gen_has_vlan
-		logic [TYPE_W-1:0] vlan_id;
-		logic              vlan_idx_v;
-		logic              vlan_v;
-		logic              tpic_v;
 		
 		assign tpic_v = vlan_id == TPIC;
 		assign vlan_idx_v = cnt_q[TYPE_IDX_W-1:0] == TYPE_IDX;
@@ -218,6 +216,8 @@ end else begin : gen_16_32_data_width
 		assign type_v = cnt_q == TYPE_IDX;
 	end // vlan_tag
 end
+endgenerate
+
 assign type_err_v = fsm_head_q & valid_i & type_v & (type_id != IPV4);
  
 /* data bypass valid
@@ -241,7 +241,8 @@ logic              data_lite_v;
 
 assign data_lite_v = valid_i & ~bypass_v_q;
 
-if ( DATA_W == 16 ) begin
+generate
+if ( DATA_W == 16 ) begin : gen_data_16
 	assign len_o  = term_i ? len_i : DATA_BYTES_N;
 	assign data_o  = data_i;
 	assign valid_o = data_lite_v & fsm_data_q;
@@ -254,7 +255,7 @@ if ( DATA_W == 16 ) begin
 		end
 	end
 	assign start_o =  fsm_head_2q & fsm_data_q;
-end else begin 
+end else begin : gen_data_not_16
 	/* if DATA_W > 16 need to shift data because of header */
 	logic [LEN_W-1:0]  head_data_len;
 	logic [DATA_W-1:0] head_data_shifted;
@@ -269,11 +270,11 @@ end else begin
 					( fsm_data_q 
 					| fsm_head_q & head_data_lite_v ); 
 	assign start_o = head_data_lite_v;
-	if ( DATA_W == 32 ) begin
+	if ( DATA_W == 32 ) begin : gen_data_eq_32
 		/* with or whitout vtag data will be on the 2 msb bytes after the type */
 		assign head_data_len =  'd2;
 		assign head_data_shifted = { {TYPE_W{1'bx}}, data_i[DATA_W-:TYPE_W]};
-	end else if ( DATA_W == 64 ) begin
+	end else if ( DATA_W == 64 ) begin : gen_data_eq_64
 		/* cnt_q[2] = 20, start 2nd lane0 
  		 * no vtag :
  		 * [X | pre 4B] [pre 4B | @dst 4B] [@dst 2B | @src 6B] [type 2B| data 6B]
@@ -287,12 +288,18 @@ end else begin
 		 * [pre 8B] [@dst 6B | @scr 2B] [@src 4B | vtag 4B] [type 2B | data 6B]
 		 */
 		logic head_data_shift2;
-		if (IS_10G) begin
-			if ( VLAN_TAG ) begin
+		/* verilator lint_off UNUSEDSIGNAL */
+		assign head_data_shifted = head_data_shift2
+								 ? {data_i[DATA_W-:TYPE_W], {DATA_W-TYPE_W{1'bx}}}
+								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}}};
+		/* verilator lint_on UNUSEDSIGNAL */
+
+		if (IS_10G) begin: gen_is_10g
+			if ( VLAN_TAG ) begin: gen_vlan_tag
 				/* verilator lint_off UNUSEDSIGNAL */
 				assign head_data_shift2 = cnt_q[2] ^ vlan_v;
 				/* verilator lint_on UNUSEDSIGNAL */
-			end else begin
+			end else begin /* ! VLAN_TAG */
 				assign head_data_shift2 = ~cnt_q[2];	
 			end
 		end else /* !10G */
@@ -304,14 +311,10 @@ end else begin
 			end else begin /* !VTAG */
 				assign head_data_shift2 = 1'b1;
 				assign head_data_len = 'd2;  
-			end
-		end
-		/* verilator lint_off UNUSEDSIGNAL */
-		assign head_data_shifted = head_data_shift2
-		/* verilator lint_on UNUSEDSIGNAL */
-								 ? {data_i[DATA_W-:TYPE_W], {DATA_W-TYPE_W{1'bx}}}
-								 : {data_i[DATA_W-:DATA_W-TYPE_W],{TYPE_W{1'bx}}};
-end
+			end // VLAN_TAG
+		end // IS_10G
+	end // DATA_W == 64 
+endgenerate
 
 /* crc */
 // TODO 

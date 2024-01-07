@@ -13,7 +13,7 @@ endif
 # project directory and name
 PROJ_DIR := ../vivado
 PROJ := eth_rx
-PROJ_PATH := $(PROJ_DIR)/$(fpga)_$(PROJ)
+PROJ_PATH := $(PROJ_DIR)/$(fpga)_$(PROJ)/$(PROJ).xpr
 
 # Invoke vivado in tcl batch mode
 VVD := vivado -mode batch -source
@@ -25,15 +25,19 @@ $(PROJ_DIR):
 	mkdir -p $(PROJ_DIR)
 
 # setup
-setup: setup.tcl $(PROJ_DIR)
+$(PROJ_PATH): setup.tcl $(PROJ_DIR)
 	$(VVD) $< $(ARGS) 
 
-$(PROJ_PATH): setup
+setup: $(PROJ_PATH)
 	$(info Set up project with parameters :)
 	$(info fpga: $(fpga))
 	$(info project: $(PROJ))
 	$(info checkpoints: $(checkpoints))
 	$(info path to project: $(PROJ_PATH))
+
+
+lint: lint.tcl
+	$(VVD) $< -tclargs "$(PROJ_PATH)" 
 
 clean:
 	rm -f vivado*.jou

@@ -82,6 +82,7 @@ mac_rx #(
 /* IPv4 */
 logic              t_valid;
 logic              t_start;
+logic              t_cancel;
 logic              t_term;
 logic [DATA_W-1:0] t_data;
 logic [LEN_W-1:0]  t_len;
@@ -105,6 +106,7 @@ ipv4_rx #(
 	.cs_err_o(ip_cs_err),
 	.valid_o (t_valid),
 	.start_o (t_start),
+	.cancel_o(t_cancel),
 	.term_o  (t_term),
 	.data_o  (t_data),
 	.len_o   (t_len)
