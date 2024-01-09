@@ -40,11 +40,15 @@ lint: lint.tcl
 synth_cp:= $(PROJ_DIR)/synth_cp.dcp
 impl_cp:= $(PROJ_DIR)/impl_cp.dcp
 
-$(synth_cp): 
+rtl_deps := $(shell find ../ -name "*\.[v|sv]" | grep -v phy | grep -v tb | tr '\n' ' ' )
+
+$(synth_cp): $(rtl_deps) 
 	$(VVD) synth.tcl $(ARGS)
 
 $(impl_cp): $(synth_cp)
 	$(VVD) impl.tcl $(ARGS)
+
+synth:$(synth_cp)
 
 impl: $(impl_cp)
 

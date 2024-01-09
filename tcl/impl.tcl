@@ -2,10 +2,8 @@ set path [lindex $argv 0]
 set proj_dir [lindex $argv 1]
 
 # open project
-open_project $path
-
-# read synth checkpoint
-#read_checkpoint ${proj_dir}/synth_cp.dcp
+set res [open_project $path]
+puts "res $res"
 
 # opt design
 opt_design 

@@ -10,6 +10,8 @@ set design eth_rx
 set project_name $design
 set path ${build_path}/${device}_${project_name}
 set log_path $path
+
+# create project
 create_project $project_name $path -part $device -force 
 set_property design_mode RTL [current_fileset -srcset]
 set top_module $design
@@ -22,18 +24,28 @@ read_verilog -sv $rtl_path/eth_rx.v
 set rtl_mac_dir ${rtl_path}/mac
 read_verilog -sv ${rtl_mac_dir}/crc.v
 read_verilog -sv ${rtl_mac_dir}/mac_rx.v 
+add_files ${rtl_mac_dir}/crc.v
+add_files ${rtl_mac_dir}/mac_rx.v 
+
 
 #ip
 set rtl_ip_dir ${rtl_path}/ipv4
 read_verilog -sv ${rtl_ip_dir}/ipv4_rx.v
 read_verilog -sv ${rtl_ip_dir}/ip_addr_match.v
+add_files ${rtl_ip_dir}/ipv4_rx.v
+add_files ${rtl_ip_dir}/ip_addr_match.v
+
 
 #udp
 set rtl_udp_dir ${rtl_path}/udp
 read_verilog -sv ${rtl_udp_dir}/udp_rx.v
+add_files ${rtl_udp_dir}/udp_rx.v
 
 #add xdc constraints
 read_xdc ${device}.xdc
+
+# create ip dir
+file mkdir $path/$project_name.scr/sources_1
 
 # close
 close_project
