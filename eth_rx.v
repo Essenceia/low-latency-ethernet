@@ -35,6 +35,8 @@ module eth_rx #(
 	/* to application */
 	output                  app_valid_o,
 	output                  app_start_o,
+	output                  app_term_o,
+	output [LEN_W-1:0]      app_term_len_o,
 	output                  app_cancel_o,
 	output [DATA_W-1:0]     app_data_o,
 	output [LEN_W-1:0]      app_len_o
@@ -84,6 +86,7 @@ logic              t_valid;
 logic              t_start;
 logic              t_cancel;
 logic              t_term;
+logic [LEN_W-1:0]  t_term_len;
 logic [DATA_W-1:0] t_data;
 logic [LEN_W-1:0]  t_len;
 logic              ip_cs_err;
@@ -98,18 +101,19 @@ ipv4_rx #(
 )m_ipv4_rx(
 	.clk   (clk),
 	.nreset(nreset),
-	.cancel_i(phy_cancel_i),
-	.valid_i (ip_valid),
-	.start_i (ip_start),
-	.data_i  (ip_data),
-	.len_i   (ip_len),
-	.cs_err_o(ip_cs_err),
-	.valid_o (t_valid),
-	.start_o (t_start),
-	.cancel_o(t_cancel),
-	.term_o  (t_term),
-	.data_o  (t_data),
-	.len_o   (t_len)
+	.cancel_i  (phy_cancel_i),
+	.valid_i   (ip_valid),
+	.start_i   (ip_start),
+	.data_i    (ip_data),
+	.len_i     (ip_len),
+	.cs_err_o  (ip_cs_err),
+	.valid_o   (t_valid),
+	.start_o   (t_start),
+	.cancel_o  (t_cancel),
+	.term_o    (t_term),
+	.term_len_o(t_term_len),
+	.data_o    (t_data),
+	.len_o     (t_len)
 );
 
 /* Transport */
@@ -128,11 +132,14 @@ udp_rx #(
 	.valid_i    (t_valid),
 	.start_i    (t_start),
 	.term_i     (t_term),
+	.term_len_i (t_term_len),
 	.data_i     (t_data),
 	.len_i      (t_len),
 	.ip_cs_err_i(ip_cs_err),
 	.valid_o    (app_valid_o),
 	.start_o    (app_start_o),
+	.term_o     (app_term_o),
+	.term_len_o (app_term_len_o),
 	.data_o     (app_data_o), 
 	.len_o      (app_len_o)
 );

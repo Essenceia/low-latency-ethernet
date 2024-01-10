@@ -42,6 +42,7 @@ module ipv4_rx #(
 	output              valid_o,
 	output              start_o,
 	output              term_o,
+	output [LEN_W-1:0]  term_len_o,
 	output              cancel_o,
 	output [DATA_W-1:0] data_o,
 	output [LEN_W-1:0]  len_o
@@ -331,11 +332,12 @@ assign valid_o = valid_i & fsm_data_q &  ~bypass_v_q;
 assign data_o  = data_i;
 
 /* for data_width==16, allways full length (2) with a potencial exeption 
- * on the last payload when len is not a power of 2, we have lenght = 1 */
-assign len_o   = end_data_v ? { ~tot_len_q[0], tot_len_q[0]} : (DATA_W/8);
+ * on the term (last) payload when len is not a power of 2, we have lenght = 1 */
+assign len_o   = (DATA_W/8);
 
 /* both IPv4 and UDP finish at the same time, IPv4 drives UDP term */
-assign term_o  = end_data_v;
+assign term_o     = end_data_v;
+assign term_len_o = {~tot_len_q[0], tot_len_q[0]};
 
 assign start_o = fsm_head_2q & fsm_data_q;
 

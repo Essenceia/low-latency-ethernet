@@ -22,6 +22,7 @@ module udp_rx #(
 	input              valid_i,
 	input              start_i,
 	input              term_i,
+	input [LEN_W-1:0]  term_len_i,
 	input [DATA_W-1:0] data_i,
 	input [LEN_W-1:0]  len_i,
 	input              ip_cs_err_i,
@@ -29,6 +30,8 @@ module udp_rx #(
 	// to application layer
 	output              valid_o,
 	output              start_o,
+	output              term_o,
+	output [LEN_W-1:0]  term_len_o,
 	output [DATA_W-1:0] data_o, 
 	output [LEN_W-1:0]  len_o
 );
@@ -53,6 +56,8 @@ logic             unused_cnt_add_of;
 logic             cnt_rst;
 
 assign cnt_rst = fsm_idle_q & ~start_i;
+/* not incrementing using term_len as the cnt_q signal is used to determine
+ * the end of the udp head */
 assign {unused_cnt_add_of, cnt_add} = cnt_q + {{CNT_W-LEN_W{1'b0}}, {LEN_W{valid_i}}&len_i}; 
 assign cnt_next = cnt_rst ? {CNT_W{1'b0}} : cnt_add;
 assign cnt_en = fsm_idle_q | valid_i;
@@ -148,10 +153,13 @@ always @(posedge clk)begin
 end
 
 // output
-assign valid_o = fsm_data_q & valid_i & ~bypass_v_q;
-assign start_o = fsm_data_q & fsm_head_2q;
-assign data_o  = data_i;
-assign len_o   = len_i;
+assign valid_o    = fsm_data_q & valid_i & ~bypass_v_q;
+assign start_o    = fsm_data_q & fsm_head_2q;
+assign data_o     = data_i;
+assign len_o      = len_i;
+assign term_o     = term_i;
+assign term_len_o = term_len_i;
+
 `ifdef FORMAL
 
 /* udp length */
