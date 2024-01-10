@@ -19,7 +19,7 @@ report_utilization -file $proj_dir/post_synth_util.rpt
 
 # opt design
 puts "\n\n== Optimize =="
-opt_design
+#opt_design
 
 puts "\n\n"
 
