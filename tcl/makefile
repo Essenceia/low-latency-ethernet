@@ -65,6 +65,13 @@ $(timing_report_path): time.tcl $(impl_cp)
 
 time: $(timing_report_path)
 
+rebuild:
+	$(MAKE) setup
+	$(MAKE) lint
+	$(MAKE) synth
+	$(MAKE) impl
+	$(MAKE) time
+
 clean:
 	rm -f vivado*.jou
 	rm -f vivado*.log
