@@ -1,21 +1,24 @@
 set path [lindex $argv 0]
 set proj_dir [lindex $argv 1]
 
-# open project
-set res [open_project $path]
-puts "res $res"
+# open checkpoint
+open_checkpoint $path
 
-# opt design
-opt_design 
+report_utilization -file $proj_dir/impl_util.rpt
 
 # place
+puts "\n\n=== Place ==="
 place_design 
 
 # route
-route_design
+puts "\n\n=== Route ==="
+route_design > $proj_dir/route_log.txt
 
-# checkpoint
-write_checkpoint ${proj_dir}/impl_cp.dcp
+# reports
+report_route_status -file ${proj_dir}/route_status.rpt
+report_utilization -file ${proj_dir}/route_util.rpt
+report_timing_summary -file ${proj_dir}/route_timing_summary.rpt
 
-# close project
-close_project
+
+# write checkpoint
+write_checkpoint -force ${proj_dir}/impl_cp.dcp

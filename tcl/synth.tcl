@@ -10,10 +10,8 @@ open_project $path
 puts "\n\n== Synthesis =="
 
 # run synth
-synth_design -mode out_of_context -fsm_extraction one_hot -directive PerformanceOptimized
-
-# checkpoint
-write_checkpoint -force ${proj_dir}/synth_cp.dcp
+synth_design -mode out_of_context -fsm_extraction one_hot -directive PerformanceOptimized \
+	-name synth_tcl_1
 
 # report timing and utilization
 report_timing_summary -file $proj_dir/post_synth_timing_summary.rpt
@@ -24,5 +22,9 @@ puts "\n\n== Optimize =="
 opt_design
 
 puts "\n\n"
+
+# checkpoint
+write_checkpoint -force ${proj_dir}/synth_op_cp.dcp
+
 # close project
 close_project
